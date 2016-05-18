@@ -52,15 +52,16 @@
               "where o.user_id = p.id and " +
               "o.is_cart = false " +
               "group by p.id, p.name order by p.name ASC; ");
-        rs_product = stmt2.executeQuery("SELECT Left(p.name,10), SUM(o.quantity * o.price) as amount " +
+        rs_product = stmt2.executeQuery("SELECT p.id,Left(p.name,10), SUM(o.quantity * o.price) as amount " +
               "FROM products p, orders o " +
               "WHERE o.product_id = p.id and o.is_cart = false " +
-              "Group by p.name " +
+              "Group by p.name,p.id " +
               "ORDER BY p.name ASC " +
               "LIMIT 10 offset 0;");
-        cell_amount = conn.prepareStatement("select (o.price*o.quantity) as amount "+
+        cell_amount = conn.prepareStatement("select round(cast((o.price*o.quantity) as numeric),2) as amount "+
               "from orders o "+
               "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
+
 
       }
     }
@@ -99,34 +100,32 @@
 <table class="table table-striped">
   <%if(rs_stateOrCustomer!=null && rs_product!=null && cell_amount!=null) { %>
       <th></th>
-      <%while(rs_product.next()){ %>
-        <th><%=rs_product.getString("left")%></th>
-      <% 
-      }
-      int i = 0;
-      ResultSet cell_a = null;
-      while (rs_stateOrCustomer.next()) { 
-        //while(rs_product.next()){
+      <%String[] productArray = new String[10]; 
+        int i=0;
+        while(rs_product.next()){ %>
+          <th><%=rs_product.getString("left")%></th>
+          <%productArray[i++] = rs_product.getString("id");   
+        }
+        ResultSet salesAmount = null;
+        while (rs_stateOrCustomer.next()) { 
           if (request.getParameter("row_option").equals("customers")){%>
           <tr>
             <td><b><%=rs_stateOrCustomer.getString("name")+" ("+rs_stateOrCustomer.getString("amount")+")"%></b></td>
-         
-            <%cell_amount.setInt(1,rs_product.getInt(i++));
-              cell_amount.setInt(2,rs_stateOrCustomer.getString("id"));
-              cell_a = cell_amount.executeQuery(); 
-              %>
-            <% if(cell_a.next())%>
-              <td><b><%=cell_a.getInt("amount")%></b></td>
-          <%
-          }else{%>
-            <td></td>
-          </tr>
-          <% } 
+
+            <%for(int counter = 0; counter < productArray.length; counter++){
+                cell_amount.setInt(1, Integer.parseInt(productArray[counter]));
+                cell_amount.setInt(2,Integer.parseInt(rs_stateOrCustomer.getString("id")));
+                salesAmount = cell_amount.executeQuery();
+                if (salesAmount!= null && salesAmount.next()){ %>
+
+              <td><%= "$ " + salesAmount.getString("amount") %></td>
+                  <%
+                }
+              }
+ 
+          }
         }
-      //}
     }
-    else
-      out.println("<script>alert('Something went wrong');</script>");
     
   %>
 </table>
