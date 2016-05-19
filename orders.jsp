@@ -12,6 +12,7 @@
   Connection conn = null;
   ResultSet rs_stateOrCustomer = null;
   ResultSet rs_product = null;
+  ResultSet rs_product_check = null;
   PreparedStatement cell_amount = null;
   PreparedStatement customer_sale = null;
   PreparedStatement product_sale = null;
@@ -40,6 +41,7 @@
       offsetProduct = 0;
     }
     offsetProductInc = offsetProduct + 10;
+    offsetProductDec = offsetProduct - 10;
 
 
     if( request.getParameter("row_option") == null){
@@ -61,6 +63,7 @@
 
     Statement stmt = conn.createStatement();
     Statement stmt2 = conn.createStatement();
+    Statement stmt4 = conn.createStatement();
 
     if(rowOption.equals("states")){
       if(orderOption.equals("top_k") ){
@@ -96,6 +99,12 @@
           "select id, Left(name,10) from products " +
           "order by name ASC " +
           "limit 10 offset " + offsetProduct + " ;" );
+
+        rs_product_check = stmt4.executeQuery(
+          "select id, Left(name,10) from products " +
+          "order by name ASC " +
+          "limit 10 offset " + offsetProductInc + " ;" );
+
         product_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
           "from products p, orders o "+
@@ -204,20 +213,23 @@
 
         }
       }
-    } %>
+  } %>
 </table>
 
 <%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
 <div> 
+  <%if(offsetProductDec >= 0){%>
   <form action= "orders.jsp" method="POST"> 
-    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductDec%>">
+    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductDec%>"><%=offsetProductDec%>
     <input type="submit" value = "Previous 10 Product"/>
   </form>
-
-  <form action= "orders.jsp" method="POST"> 
-    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
-    <input type="submit" value = "Next 10 Product"/>
-  </form> 
+  <%}%>
+  <%if( rs_product_check != null){ %>
+    <form action= "orders.jsp" method="POST"> 
+      <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>"><%=offsetProductInc%>
+      <input type="submit" value = "Next 10 Product"/>
+    </form> 
+  <%}%>
 </div>
 
 <%}%>
