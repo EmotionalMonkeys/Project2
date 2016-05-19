@@ -57,11 +57,6 @@
       session.setAttribute("category_option", categoryOption);
     }
 
-    %>
-    <h1><%=categoryOption%></h1>
-    <%
-
-
     if( request.getParameter("row_option") == null){
       rowOption = (String)session.getAttribute("row_option");
     }
@@ -81,19 +76,52 @@
 
 
     if(rowOption.equals("states")){
-      if(orderOption.equals("top_k") ){
-        //rs = stmt.executeQuery("SELECT state FROM users order by state asc");
-      }
-      else{
+      if(orderOption.equals("top_k") ){ //state top_K
+        rs_stateOrCustomer = stmt.executeQuery(
+          "select distinct state, round(cast(sum(o.quantity*o.price) as numeric),2) as amount "+
+          "from users u, orders o where u.id = o.user_id group by state "+
+          "union select distinct state, 0 from users "+
+          "where state not in(select distinct state from users u, orders o where u.id=o.user_id) "+
+          "order by amount desc limit 20;");
 
-      }
+        if(categoryOption.equals("all")){
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products " +
+            "order by name ASC " +
+            "limit 10 offset " + offsetProduct + " ;" );
+        }
+        else{
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products p where " +
+            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+            "order by name ASC " +
+            "limit 10 offset " + offsetProduct + " ;" );
+        }
 
-    }
-    else{ //selected customer
-      if(orderOption.equals("top_k") ){
+        rs_product_check = stmt4.executeQuery(
+          "select id, Left(name,10) from products " +
+          "order by name ASC " +
+          "limit 10 offset " + offsetProductInc + " ;" );
+
+        product_sale = conn.prepareStatement(
+          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+          "from products p, orders o "+
+          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
+          "group by p.id; ");
+        cell_amount = conn.prepareStatement(
+          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
+          "from orders o "+
+          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
+      }
+      else{ //states alphabetical
         
       }
-      else{
+    }
+    else{ 
+      if(orderOption.equals("top_k") ){ //customer top_K
+        
+      }
+      else{ //customer, alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
           "select id, name from users order by name asc limit 20");
         customer_sale = conn.prepareStatement(
@@ -149,22 +177,45 @@
 <div>
   <form action="orders.jsp" method="POST">
     <select name = "row_option" >
-      <option value = "customers" name = "customers">Customers</option>
-      <option value = "states">States</option>
-    </select>
-    <select name = "order_option" >
-      <option value = "alphabetical">Alphabetical</option>
-      <option value = "top_k">Top-K</option>
-    </select>
-    <select name = "category_option" >
-      <option value = "all">All</option>
-      <%while(rs_categories.next()){%>
-        <option value="<%=rs_categories.getString("name")%>">
-          <%=rs_categories.getString("name")%>
-        </option>
-      <%}%>
+      <%if(request.getParameter("row_option")!=null && 
+            request.getParameter("row_option").equals("states")) {%>
+          <option value = "customers">Customers</option>
+          <option selected value = "states">States</option>
+       <%} 
+       else{%>
+          <option selected value = "customers">Customers</option>
+          <option value = "states">States</option>
+       <%}%>
     </select>
 
+    <select name = "order_option" >
+       <%if(request.getParameter("order_option")!=null && 
+            request.getParameter("order_option").equals("top_k")) {%>
+          <option value = "alphabetical">Alphabetical</option>
+          <option selected value = "top_k">Top-K</option>      
+       <%} 
+       else{%>
+          <option selected value = "alphabetical">Alphabetical</option>
+          <option value = "top_k">Top-K</option>
+       <%}%>
+    </select>
+    <select name = "category_option" >
+      <option selected value = "all">All</option>
+      <%while(rs_categories.next()){
+          String category = rs_categories.getString("name");
+          if(request.getParameter("category_option")!=null && 
+            request.getParameter("category_option").equals(category)) {%>
+            <option selected value="<%=category%>">
+              <%=category%>
+            </option>
+          <%}
+          else{%>
+            <option value="<%=category%>">
+              <%=category%>
+            </option>
+          <%}
+        }%>
+    </select>
     <input type="submit" value = "Run Query"/>
   </form>
 </div>
@@ -225,8 +276,14 @@
               <%
             }
           }
-
+          %></tr><%
         }
+        else{%> 
+          <tr>
+          <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+
+            rs_stateOrCustomer.getString("amount")+")"%></b></td>
+          </tr>
+        <%}
       }
   } %>
 </table>
@@ -235,7 +292,7 @@
 <div> 
   <%if(offsetProductDec >= 0){%>
   <form action= "orders.jsp" method="POST"> 
-    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductDec%>"><%=offsetProductDecd%>
+    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductDec%>"><%=offsetProductDec%>
     <input type="submit" value = "Previous 10 Product"/>
   </form>
   <%}%>
