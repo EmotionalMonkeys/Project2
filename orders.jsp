@@ -14,6 +14,7 @@
   ResultSet rs_product = null;
   PreparedStatement cell_amount = null;
   PreparedStatement customer_sale = null;
+  PreparedStatement state_sale = null;
   PreparedStatement product_sale = null;
   int offsetProduct = 0;
   int offsetProductInc = 0;
@@ -67,7 +68,42 @@
         //rs = stmt.executeQuery("SELECT state FROM users order by state asc");
       }
       else{
+        rs_stateOrCustomer = stmt.executeQuery(
+          "select id, state from users order by state asc limit 20");
+        state_sale = conn.prepareStatement(
+          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+          "from orders o, users u "+ 
+          "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
+          "group by u.id; ");
+          /*"with temp as (SELECT u.name, u.id " +
+          "from users u " +
+          "order by u.name ASC " +
+          "LIMIT 20)" +
+          "SELECT p.id, p.name, round( cast(SUM(o.quantity * o.price) as numeric),2) as amount " +
+          "FROM orders o, temp p " +
+          "where o.user_id = p.id and " +
+          "o.is_cart = false " +
+          "group by p.id, p.name order by p.name ASC; ");*/
+        rs_product = stmt2.executeQuery(
+          "select id, Left(name,10) from products " +
+          "order by name ASC " +
+          "limit 10;" );
+        product_sale = conn.prepareStatement(
+          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+          "from products p, orders o "+
+          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
+          "group by p.id; ");
 
+          /*"select p.id,Left(p.name,10), SUM(o.quantity * o.price) as amount " +
+          "from products p, orders o " +
+          "where o.product_id = p.id and o.is_cart = false " +
+          "group by p.name,p.id " +
+          "order by p.name ASC " +
+          "limit 10 offset 0;");*/
+        cell_amount = conn.prepareStatement(
+          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
+          "from orders o "+
+          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
       }
 
     }
@@ -171,7 +207,9 @@
 
      
       ResultSet customerAmount = null;
+      ResultSet stateAmount = null;
       String customerSpending = "0"; 
+      String stateSpending = "0"; 
 
       ResultSet salesAmount = null;
 
@@ -184,6 +222,8 @@
             if(customerAmount!= null && customerAmount.next()){
               customerSpending = customerAmount.getString("amount");
             }
+            else
+                  customerSpending = "0";
           %>
           <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+customerSpending+")"%></b></td>
 
@@ -203,6 +243,34 @@
           }
 
         }
+        else if (request.getParameter("row_option").equals("states")) {%>
+        <tr>
+
+            <%  state_sale.setInt(1, Integer.parseInt(rs_stateOrCustomer.getString("id")));
+                stateAmount = state_sale.executeQuery();
+                if(stateAmount!= null && stateAmount.next()){
+                  stateSpending = stateAmount.getString("amount");
+                }
+                else
+                  stateSpending = "0";
+            %>
+            <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+stateSpending+")"%></b></td>
+
+            <%for(int counter = 0; counter < productList.size(); counter++){
+                cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
+                cell_amount.setInt(2, Integer.parseInt(rs_stateOrCustomer.getString("id")));
+                salesAmount = cell_amount.executeQuery();
+
+                if (salesAmount!= null && salesAmount.next()){ %>
+                  <td><%= "$ " + salesAmount.getString("amount") %></td>
+                  <%
+                }
+                else {%>
+                  <td><%= "$ 0 "%></td><%
+                }
+              }
+
+          }
       }
     } %>
 </table>
