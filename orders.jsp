@@ -15,6 +15,11 @@
   PreparedStatement cell_amount = null;
   PreparedStatement customer_sale = null;
   PreparedStatement product_sale = null;
+  int offsetProduct = 0;
+  int offsetProductInc = 0;
+  int offsetProductDec = 0;
+  String rowOption = "";
+  String orderOption = "";
 
   try {
     Class.forName("org.postgresql.Driver");
@@ -26,8 +31,34 @@
   catch (Exception e) {}
 
   if ("POST".equalsIgnoreCase(request.getMethod())) {
-    String rowOption = request.getParameter("row_option");
-    String orderOption = request.getParameter("order_option");
+
+
+    if (request.getParameter("addProduct")!= null){
+      offsetProduct = Integer.parseInt(request.getParameter("addProduct"));
+    }
+    else{
+      offsetProduct = 0;
+    }
+    offsetProductInc = offsetProduct + 10;
+
+
+    if( request.getParameter("row_option") == null){
+      rowOption = (String)session.getAttribute("row_option");
+    }
+    else{
+      rowOption = request.getParameter("row_option");
+      session.setAttribute("row_option", rowOption);
+    }
+
+    if( request.getParameter("order_option") == null){
+      orderOption = (String)session.getAttribute("order_option");
+    }
+    else{ 
+      orderOption = request.getParameter("order_option");
+      session.setAttribute("order_option", orderOption);
+    }
+
+
     Statement stmt = conn.createStatement();
     Statement stmt2 = conn.createStatement();
 
@@ -64,7 +95,7 @@
         rs_product = stmt2.executeQuery(
           "select id, Left(name,10) from products " +
           "order by name ASC " +
-          "limit 10;" );
+          "limit 10 offset " + offsetProduct + " ;" );
         product_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
           "from products p, orders o "+
@@ -99,7 +130,7 @@
 
 <div>
   <form action="orders.jsp" method="POST">
-    <select name = "row_option">
+    <select name = "row_option" >
       <option value = "customers" name = "customers">Customers</option>
       <option value = "states">States</option>
     </select>
@@ -115,71 +146,81 @@
   </form>
 </div>
 
-<table class="table table-striped">
-  <%if(rs_stateOrCustomer!=null && rs_product!=null && cell_amount!=null) { 
-      %>
-
-      <th></th>
-      <%ArrayList productList = new ArrayList(); 
-        
+<table class="table table-striped"><%
+  if(rs_stateOrCustomer!=null && rs_product!=null && cell_amount!=null) { 
+    %>
+    <th></th>
+    <%
+      ArrayList productList = new ArrayList(); 
          
-        ResultSet productAmount = null;
-        String productSpending = "0";
+      ResultSet productAmount = null;
+      String productSpending = "0";
 
-        
-        while(rs_product.next()){
-          product_sale.setInt(1, Integer.parseInt(rs_product.getString("id")));
-          productAmount = product_sale.executeQuery();
-          if(productAmount!= null && productAmount.next()){
-            productSpending = productAmount.getString("amount");
-          }
+      
+      while(rs_product.next()){
+        product_sale.setInt(1, Integer.parseInt(rs_product.getString("id")));
+        productAmount = product_sale.executeQuery();
+        if(productAmount!= null && productAmount.next()){
+          productSpending = productAmount.getString("amount");
+        }
 
+        %>
+        <th><%=rs_product.getString("left") + " (" + productSpending + ")"%></th>
+        <%productList.add(rs_product.getString("id"));   
+      }
+
+     
+      ResultSet customerAmount = null;
+      String customerSpending = "0"; 
+
+      ResultSet salesAmount = null;
+
+      while (rs_stateOrCustomer.next()) { 
+        if (rowOption.equals("customers")){%>
+        <tr>
+
+        <%  customer_sale.setInt(1, Integer.parseInt(rs_stateOrCustomer.getString("id")));
+            customerAmount = customer_sale.executeQuery();
+            if(customerAmount!= null && customerAmount.next()){
+              customerSpending = customerAmount.getString("amount");
+            }
           %>
-          <th><%=rs_product.getString("left") + " (" + productSpending + ")"%></th>
-          <%productList.add(rs_product.getString("id"));   
-        }
+          <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+customerSpending+")"%></b></td>
 
-       
-        ResultSet customerAmount = null;
-        String customerSpending = "0"; 
+        <%for(int counter = 0; counter < productList.size(); counter++){
+            cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
+            cell_amount.setInt(2, Integer.parseInt(rs_stateOrCustomer.getString("id")));
+            salesAmount = cell_amount.executeQuery();
 
-        ResultSet salesAmount = null;
-
-        while (rs_stateOrCustomer.next()) { 
-          if (request.getParameter("row_option").equals("customers")){%>
-          <tr>
-
-            <%  customer_sale.setInt(1, Integer.parseInt(rs_stateOrCustomer.getString("id")));
-                customerAmount = customer_sale.executeQuery();
-                if(customerAmount!= null && customerAmount.next()){
-                  customerSpending = customerAmount.getString("amount");
-                }
-               %>
-            <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+customerSpending+")"%></b></td>
-
-            <%for(int counter = 0; counter < productList.size(); counter++){
-                cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
-                cell_amount.setInt(2, Integer.parseInt(rs_stateOrCustomer.getString("id")));
-                salesAmount = cell_amount.executeQuery();
-
-                if (salesAmount!= null && salesAmount.next()){ %>
-                  <td><%= "$ " + salesAmount.getString("amount") %></td>
-                  <%
-                }
-                else {%>
-                  <td><%= "$ 0 "%></td><%
-                }
-              }
- 
+            if (salesAmount!= null && salesAmount.next()){ %>
+              <td><%= "$ " + salesAmount.getString("amount") %></td>
+              <%
+            }
+            else {%>
+              <td><%= "$ 0 "%></td>
+              <%
+            }
           }
+
         }
-    }
-    
-  %>
+      }
+    } %>
 </table>
 
+<%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
+<div> 
+  <form action= "orders.jsp" method="POST"> 
+    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductDec%>">
+    <input type="submit" value = "Previous 10 Product"/>
+  </form>
 
+  <form action= "orders.jsp" method="POST"> 
+    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
+    <input type="submit" value = "Next 10 Product"/>
+  </form> 
+</div>
 
+<%}%>
 
 </body>
 </html>
