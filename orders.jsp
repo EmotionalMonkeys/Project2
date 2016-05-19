@@ -24,13 +24,18 @@
     conn = DriverManager.getConnection(url, admin, password);
   }
   catch (Exception e) {}
+  Statement stmt = conn.createStatement();
+  Statement stmt2 = conn.createStatement();
+  Statement stmt3 = conn.createStatement();
+  ResultSet rs_categories = stmt3.executeQuery("select name from categories");
 
   if ("POST".equalsIgnoreCase(request.getMethod())) {
     String rowOption = request.getParameter("row_option");
     String orderOption = request.getParameter("order_option");
-    Statement stmt = conn.createStatement();
-    Statement stmt2 = conn.createStatement();
-
+    String categoryOption = request.getParameter("category_option");
+    %>
+    <h1><%=categoryOption%></h1>
+    <%
     if(rowOption.equals("states")){
       if(orderOption.equals("top_k") ){
         //rs = stmt.executeQuery("SELECT state FROM users order by state asc");
@@ -40,9 +45,9 @@
       }
 
     }
-    else{
+    else{ //selected customer
       if(orderOption.equals("top_k") ){
-        //rs = stmt.executeQuery("");
+        
       }
       else{
         rs_stateOrCustomer = stmt.executeQuery(
@@ -52,31 +57,25 @@
           "from orders o, users u "+ 
           "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
           "group by u.id; ");
-          /*"with temp as (SELECT u.name, u.id " +
-          "from users u " +
-          "order by u.name ASC " +
-          "LIMIT 20)" +
-          "SELECT p.id, p.name, round( cast(SUM(o.quantity * o.price) as numeric),2) as amount " +
-          "FROM orders o, temp p " +
-          "where o.user_id = p.id and " +
-          "o.is_cart = false " +
-          "group by p.id, p.name order by p.name ASC; ");*/
-        rs_product = stmt2.executeQuery(
-          "select id, Left(name,10) from products " +
-          "order by name ASC " +
-          "limit 10;" );
+
+        if(categoryOption.equals("all")){
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products " +
+            "order by name ASC " +
+            "limit 10;" );
+        }
+        else{
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products p where " +
+            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+            "order by name ASC " +
+            "limit 10;" );
+        }
         product_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
           "from products p, orders o "+
           "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
           "group by p.id; ");
-
-          /*"select p.id,Left(p.name,10), SUM(o.quantity * o.price) as amount " +
-          "from products p, orders o " +
-          "where o.product_id = p.id and o.is_cart = false " +
-          "group by p.name,p.id " +
-          "order by p.name ASC " +
-          "limit 10 offset 0;");*/
         cell_amount = conn.prepareStatement(
           "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
           "from orders o "+
@@ -107,10 +106,15 @@
       <option value = "alphabetical">Alphabetical</option>
       <option value = "top_k">Top-K</option>
     </select>
-    <select name = "filter_option" >
+    <select name = "category_option" >
       <option value = "all">All</option>
-      <option value = "top_k">Top-K</option>
+      <%while(rs_categories.next()){%>
+        <option value="<%=rs_categories.getString("name")%>">
+          <%=rs_categories.getString("name")%>
+        </option>
+      <%}%>
     </select>
+
     <input type="submit" value = "Run Query"/>
   </form>
 </div>
@@ -121,8 +125,7 @@
 
       <th></th>
       <%ArrayList productList = new ArrayList(); 
-        
-         
+   
         ResultSet productAmount = null;
         String productSpending = "0";
 
@@ -138,8 +141,6 @@
           <th><%=rs_product.getString("left") + " (" + productSpending + ")"%></th>
           <%productList.add(rs_product.getString("id"));   
         }
-
-       
         ResultSet customerAmount = null;
         String customerSpending = "0"; 
 
@@ -170,7 +171,6 @@
                   <td><%= "$ 0 "%></td><%
                 }
               }
- 
           }
         }
     }
