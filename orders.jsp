@@ -66,6 +66,42 @@
     if(rowOption.equals("states")){
       if(orderOption.equals("top_k") ){
         //rs = stmt.executeQuery("SELECT state FROM users order by state asc");
+        rs_stateOrCustomer = stmt.executeQuery(
+          "select id, state from users order by state desc limit 20");
+        state_sale = conn.prepareStatement(
+          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+          "from orders o, users u "+ 
+          "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
+          "group by u.id; ");
+          /*"with temp as (SELECT u.name, u.id " +
+          "from users u " +
+          "order by u.name ASC " +
+          "LIMIT 20)" +
+          "SELECT p.id, p.name, round( cast(SUM(o.quantity * o.price) as numeric),2) as amount " +
+          "FROM orders o, temp p " +
+          "where o.user_id = p.id and " +
+          "o.is_cart = false " +
+          "group by p.id, p.name order by p.name ASC; ");*/
+        rs_product = stmt2.executeQuery(
+          "select id, Left(name,10) from products " +
+          "order by name ASC " +
+          "limit 10;" );
+        product_sale = conn.prepareStatement(
+          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+          "from products p, orders o "+
+          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
+          "group by p.id; ");
+
+          /*"select p.id,Left(p.name,10), SUM(o.quantity * o.price) as amount " +
+          "from products p, orders o " +
+          "where o.product_id = p.id and o.is_cart = false " +
+          "group by p.name,p.id " +
+          "order by p.name ASC " +
+          "limit 10 offset 0;");*/
+        cell_amount = conn.prepareStatement(
+          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
+          "from orders o "+
+          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
       }
       else{
         rs_stateOrCustomer = stmt.executeQuery(
