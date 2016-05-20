@@ -73,8 +73,6 @@
       session.setAttribute("order_option", orderOption);
     }
 
-
-
     if(rowOption.equals("states")){
       if(orderOption.equals("top_k") ){ //state top_K
         rs_stateOrCustomer = stmt.executeQuery(
@@ -89,6 +87,9 @@
             "select id, Left(name,10) from products " +
             "order by name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
+          rs_product_check = stmt4.executeQuery(
+          "select * from products " +
+          "limit 10 offset " + offsetProductInc + " ;" );
         }
         else{
           rs_product = stmt2.executeQuery(
@@ -96,12 +97,12 @@
             "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
             "order by name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
-        }
 
-        rs_product_check = stmt4.executeQuery(
-          "select id, Left(name,10) from products " +
-          "order by name ASC " +
+          rs_product_check = stmt4.executeQuery(
+          "select * from products p where " +
+          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
           "limit 10 offset " + offsetProductInc + " ;" );
+        }
 
         product_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
@@ -135,6 +136,9 @@
             "select id, Left(name,10) from products " +
             "order by name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
+          rs_product_check = stmt4.executeQuery(
+          "select * from products " +
+          "limit 10 offset " + offsetProductInc + " ;" );
         }
         else{
           rs_product = stmt2.executeQuery(
@@ -142,12 +146,14 @@
             "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
             "order by name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
+
+          rs_product_check = stmt4.executeQuery(
+          "select * from products p where " +
+          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+          "limit 10 offset " + offsetProductInc + " ;" );
         }
 
-        rs_product_check = stmt4.executeQuery(
-          "select id, Left(name,10) from products " +
-          "order by name ASC " +
-          "limit 10 offset " + offsetProductInc + " ;" );
+       
 
         product_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
@@ -189,7 +195,7 @@
     </select>
 
     <select name = "order_option" >
-       <%if(request.getParameter("order_option")!=null && 
+       <% if(request.getParameter("order_option")!=null && 
             request.getParameter("order_option").equals("top_k")) {%>
           <option value = "alphabetical">Alphabetical</option>
           <option selected value = "top_k">Top-K</option>      
@@ -296,6 +302,7 @@
     <input type="submit" value = "Previous 10 Product"/>
   </form>
   <%}%>
+
   <%if( rs_product_check.next()){ %>
     <form action= "orders.jsp" method="POST"> 
       <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>"><%=offsetProductInc%>
