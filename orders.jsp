@@ -128,32 +128,29 @@
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
-            "select id, Left(name,10) from products " +
-            "order by name ASC " +
+            "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " + 
+            "from products p left outer join orders o on p.id = o.product_id " +
+            "group by p.id order by p.name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
+
           rs_product_check = stmt4.executeQuery(
           "select * from products " +
           "limit 10 offset " + offsetProductInc + " ;" );
         }
         else{
           rs_product = stmt2.executeQuery(
-            "select id, Left(name,10) from products p where " +
-            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
-            "order by name ASC " +
+            "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " +  
+            "from products p left outer join orders o on p.id = o.product_id " +  
+            "where p.category_id = " +
+            "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
+            "group by p.id order by p.name ASC "+ 
             "limit 10 offset " + offsetProduct + " ;" );
 
           rs_product_check = stmt4.executeQuery(
           "select * from products p where " +
-          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption + "\'"+ ") " +
           "limit 10 offset " + offsetProductInc + " ;" );
         }       
-
-        product_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from products p, orders o "+
-          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
-          "group by p.id; ");
-
         cell_amount = conn.prepareStatement(
           "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
           "from orders o "+
