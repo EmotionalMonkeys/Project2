@@ -11,18 +11,23 @@
 <% 
   Connection conn = null;
   ResultSet rs_stateOrCustomer = null;
+  ResultSet rs_stateOrCustomer_check = null;
   ResultSet rs_product = null;
   ResultSet rs_product_check = null;
   PreparedStatement cell_amount = null;
   PreparedStatement customer_sale = null;
   PreparedStatement state_sale = null;
   PreparedStatement product_sale = null;
+  String offsetp = "";
+  String offsetcs = "";
   int offsetProduct = 0;
   int offsetProductInc = 0;
-  int offsetProductDec = 0;
+  int offsetCS = 0;
+  int offsetCSInc = 0;
   String rowOption = "";
   String orderOption = "";
   String categoryOption = "";
+
 
   try {
     Class.forName("org.postgresql.Driver");
@@ -36,25 +41,23 @@
   Statement stmt2 = conn.createStatement();
   Statement stmt3 = conn.createStatement();
   Statement stmt4 = conn.createStatement();
+  Statement stmt5 = conn.createStatement();
   
   ResultSet rs_categories = stmt3.executeQuery("select name from categories");
 
   if ("POST".equalsIgnoreCase(request.getMethod())) {
-    
-    if (request.getParameter("addProduct")!= null){
-      offsetProduct = Integer.parseInt(request.getParameter("addProduct"));
-    }
-    else{
-      offsetProduct = 0;
-    }
-    offsetProductInc = offsetProduct + 10;
-
-    if( request.getParameter("category_option") == null){
+        if( request.getParameter("category_option") == null){
       categoryOption = (String)session.getAttribute("category_option");
     }
     else{
       categoryOption = request.getParameter("category_option");
       session.setAttribute("category_option", categoryOption);
+      offsetp = offsetcs = "0";
+      session.setAttribute("offsetp", offsetp);
+      session.setAttribute("offsetcs", offsetcs);
+
+
+     
     }
 
     if( request.getParameter("row_option") == null){
@@ -63,6 +66,11 @@
     else{
       rowOption = request.getParameter("row_option");
       session.setAttribute("row_option", rowOption);
+      offsetp = offsetcs = "0";
+      session.setAttribute("offsetp", offsetp);
+      session.setAttribute("offsetcs", offsetcs);
+
+      
     }
 
     if( request.getParameter("order_option") == null){
@@ -71,7 +79,64 @@
     else{ 
       orderOption = request.getParameter("order_option");
       session.setAttribute("order_option", orderOption);
+      offsetp = offsetcs = "0";
+      session.setAttribute("offsetp", offsetp);
+      session.setAttribute("offsetcs", offsetcs);
+
+
     }
+
+    
+
+    if (request.getParameter("addProduct")== null && session.getAttribute("offsetp") != null){
+      offsetp = (String)session.getAttribute("offsetp");
+      offsetProduct = Integer.parseInt(offsetp);
+    }
+    else{
+      offsetProduct = 
+        ((session.getAttribute("offsetp") == null)? 0: Integer.parseInt(request.getParameter("addProduct")));
+      offsetp = new Integer(offsetProduct).toString();
+      session.setAttribute("offsetp", offsetp);
+    }
+     offsetProductInc = offsetProduct + 10;
+
+
+
+    if (request.getParameter("addCS")== null && session.getAttribute("offsetcs") != null){
+      offsetcs = (String)session.getAttribute("offsetcs");
+      offsetCS = Integer.parseInt(offsetcs);
+    }
+    else{
+      offsetCS = 
+        ((session.getAttribute("offsetcs") == null)? 0: Integer.parseInt(request.getParameter("addCS")));
+      offsetcs = new Integer(offsetCS).toString();
+      session.setAttribute("offsetcs", offsetcs);
+    }
+    offsetCSInc = offsetCS + 20;
+
+    
+    /*next customer button clicked 
+    if (request.getParameter("addCS")!= null){
+      offsetCS = Integer.parseInt(request.getParameter("addCS"));
+      offsetCSInc = offsetCS + 20;
+      offsetcs = new Integer(offsetCS).toString();
+      session.setAttribute("offsetcs", offsetcs);
+    }
+    else{
+      //next customer button hasnt been clicked
+      if(session.getAttribute("offsetcs") == null){
+        offsetCS = 0;
+        offsetCSInc = offsetCS + 20;
+        offsetcs = new Integer(offsetCS).toString();
+        session.setAttribute("offsetcs", offsetcs);
+      }
+      else{
+        offsetcs = (String)(session.getAttribute("offsetcs"));
+        offsetCS = Integer.parseInt(offsetcs);
+      }
+    }*/
+
+
 
 
 // ============================  State and Top_K ============================ //
@@ -84,7 +149,15 @@
           "from users u, orders o where u.id = o.user_id group by state "+
           "union select distinct state, 0 from users "+
           "where state not in(select distinct state from users u, orders o where u.id=o.user_id) "+
-          "order by amount desc limit 20;");
+          "order by amount desc limit 20 offset "+ offsetCS + " ;");
+
+        rs_stateOrCustomer_check = stmt5.executeQuery(
+          "select distinct state, round(cast(sum(o.quantity*o.price) as numeric),2) "+ 
+          "as amount "+
+          "from users u, orders o where u.id = o.user_id group by state "+
+          "union select distinct state, 0 from users "+
+          "where state not in(select distinct state from users u, orders o where u.id=o.user_id) "+
+          "order by amount desc limit 20 offset "+ offsetCSInc + " ;");
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(//
@@ -135,7 +208,12 @@
         rs_stateOrCustomer = stmt.executeQuery(
         "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
         "from users u left outer join orders o on u.id = o.user_id "+
-        "group by u.state order by state asc limit 20; ");
+        "group by u.state order by state asc limit 20 offset "+ offsetCS + " ;");
+
+        rs_stateOrCustomer_check = stmt5.executeQuery(
+        "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+        "from users u left outer join orders o on u.id = o.user_id "+
+        "group by u.state order by state asc limit 20 offset "+ offsetCSInc + " ;");
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
@@ -179,7 +257,14 @@
           "from users u, orders o where u.id = o.user_id group by name "+
           "union select name, 0 from users "+
           "where name not in(select name from users u, orders o where u.id=o.user_id) "+
-          "order by amount desc limit 20;");
+          "order by amount desc limit 20 offset "+ offsetCS + " ;");
+
+        rs_stateOrCustomer_check = stmt5.executeQuery(
+          "select name"+
+          "from users u, orders o where u.id = o.user_id group by name "+
+          "union select name, 0 from users "+
+          "where name not in(select name from users u, orders o where u.id=o.user_id) "+
+          "order by amount desc limit 20 offset "+ offsetCSInc + " ;");
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
@@ -221,7 +306,12 @@
         rs_stateOrCustomer = stmt.executeQuery(
         "select u.id, u.name,round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
         "from users u left outer join orders o on u.id = o.user_id "+
-        "group by u.id order by u.name asc limit 20; ");
+        "group by u.id order by u.name asc limit 20 offset "+ offsetCS + " ;" );
+
+        rs_stateOrCustomer_check = stmt5.executeQuery(
+        "select u.id, u.name "+
+        "from users u left outer join orders o on u.id = o.user_id "+
+        "group by u.id order by u.name asc limit 20 offset "+ offsetCSInc + " ;" );
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
@@ -232,8 +322,11 @@
             "limit 10 offset " + offsetProduct + " ;" );
 
           rs_product_check = stmt4.executeQuery(
-          "select * from products " +
-          "limit 10 offset " + offsetProductInc + " ;" );
+            "select p.id " + 
+            "from products p left outer join orders o on p.id = o.product_id " +
+            "where o.is_cart = false " +
+            "group by p.id order by p.name ASC " +
+            "limit 10 offset " + offsetProductInc + " ;" );
         }
         else{
           rs_product = stmt2.executeQuery(
@@ -245,9 +338,12 @@
             "limit 10 offset " + offsetProduct + " ;" );
 
           rs_product_check = stmt4.executeQuery(
-          "select * from products p where " +
-          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption + "\'"+ ") " +
-          "limit 10 offset " + offsetProductInc + " ;" );
+            "select p.id " +  
+            "from products p left outer join orders o on p.id = o.product_id " +  
+            "where o.is_cart = false and p.category_id = " +
+            "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
+            "group by p.id order by p.name ASC "+ 
+            "limit 10 offset " + offsetProductInc + " ;" );
         }       
 
 
@@ -320,8 +416,8 @@
 
 <table class="table table-striped"><%
   if(rs_stateOrCustomer!=null && rs_product!=null && cell_amount!=null) { 
-    %>
-    <th></th>
+    String displayOption = ( (rowOption.equals("states"))? "State | Product" : "Customer | Product");%>
+    <th><%= displayOption %></th>
     <%
       ArrayList productList = new ArrayList(); 
       
@@ -362,47 +458,60 @@
             }
           }
           %></tr><%
-        }
-
-        else if (rowOption.equals("states")) {%>
-          <tr>
-          <%String amount = 
-            ((rs_stateOrCustomer.getString("amount") == null) ? "0" : 
-            rs_stateOrCustomer.getString("amount"));%>
-          <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+
-            amount+")"%></b></td>
-
-        <%for(int counter = 0; counter < productList.size(); counter++){
-
-            cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter))); 
-            cell_amount.setString(2, rs_stateOrCustomer.getString("state"));
-        
-            salesAmount = cell_amount.executeQuery();
-
-            if (salesAmount!= null && salesAmount.next()){ %>
-              <td><%= "$ " + salesAmount.getString("amount") %></td>
-              <%
-            }
-            else {%>
-              <td><%= "$ 0 "%></td>
-              <%
-            }
-          }
-          %></tr><%
-        }
       }
-  } %>
+
+      else if (rowOption.equals("states")) {%>
+        <tr>
+        <%String amount = 
+          ((rs_stateOrCustomer.getString("amount") == null) ? "0" : 
+          rs_stateOrCustomer.getString("amount"));%>
+        <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+
+          amount+")"%></b></td>
+
+      <%for(int counter = 0; counter < productList.size(); counter++){
+
+          cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter))); 
+          cell_amount.setString(2, rs_stateOrCustomer.getString("state"));
+      
+          salesAmount = cell_amount.executeQuery();
+
+          if (salesAmount!= null && salesAmount.next()){ %>
+            <td><%= "$ " + salesAmount.getString("amount") %></td>
+            <%
+          }
+          else {%>
+            <td><%= "$ 0 "%></td>
+            <%
+          }
+        }
+        %></tr><%
+      }
+    }
+} %>
 </table>
 
 <%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
-<div> 
-  <%if( rs_product_check.next()){ %>
-    <form action= "orders.jsp" method="POST"> 
-      <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
-      <input type="submit" value = "Next 10 Product"/>
-    </form> 
-  <%}%>
-</div>
+  <div> 
+    <%if( rs_product_check.next()){ %>
+      <form action= "orders.jsp" method="POST"> 
+        <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
+        <input type="submit" value = "Next 10 Product"/>
+      </form> 
+    <%}%>
+
+    <%if( rs_stateOrCustomer_check.next()){ %>
+      <form action= "orders.jsp" method="POST"> 
+        <input type="hidden" type="number" name="addCS" value="<%=offsetCSInc%>">
+        <%if (rowOption.equals("customers")){ %>
+          <input type="submit" value = "Next 20 Customer"/>
+        <%}
+          else{ %>
+          <input type="submit" value = "Next 20 State"/>
+        <%}%>
+
+      </form>
+    <%}%> 
+  </div>
 
 <%}%>
 
