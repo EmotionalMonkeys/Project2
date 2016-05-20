@@ -15,11 +15,10 @@
   ResultSet rs_product = null;
   ResultSet rs_product_check = null;
   PreparedStatement cell_amount = null;
-  PreparedStatement customer_sale = null;
-  PreparedStatement state_sale = null;
-  PreparedStatement product_sale = null;
+
   String offsetp = "";
   String offsetcs = "";
+
   int offsetProduct = 0;
   int offsetProductInc = 0;
   int offsetCS = 0;
@@ -142,7 +141,8 @@
 // ============================  State and Top_K ============================ //
 
     if(rowOption.equals("states")){
-      if(orderOption.equals("top_k") ){ //state top_K
+      if(orderOption.equals("top_k") ){ //state top_K%>
+        <h1>SELECTED state topk</h1><%
         rs_stateOrCustomer = stmt.executeQuery(
           "select distinct state, round(cast(sum(o.quantity*o.price) as numeric),2) "+ 
           "as amount "+
@@ -159,13 +159,15 @@
           "where state not in(select distinct state from users u, orders o where u.id=o.user_id) "+
           "order by amount desc limit 20 offset "+ offsetCSInc + " ;");
 
-        if(categoryOption.equals("all")){
-          rs_product = stmt2.executeQuery(//
-            "SELECT Left(p.name,10),round(cast(sum( o.price * o.quantity) as numeric),2)" +
+
+        if(categoryOption.equals("all")){%>
+          <h1>SELECTED all</h1><%
+          rs_product = stmt2.executeQuery(
+            "SELECT p.id,Left(p.name,10),round(cast(sum( o.price * o.quantity) as numeric),2) "+
             "as amount "+  
             "FROM products p left outer join orders o on "+
             "p.id = o.product_id "+
-            "GROUP BY p.name "+
+            "GROUP BY p.name, p.id "+
             "ORDER BY amount DESC NULLS LAST "+
             "LIMIT 10 offset " + offsetProduct + " ;");
 
@@ -174,33 +176,27 @@
           "limit 10 offset " + offsetProductInc + " ;" );
         }
         else{ //selected category
-          rs_product = stmt2.executeQuery(//
-            "SELECT Left(p.name,10),round(cast(sum(o.price * o.quantity) as numeric),2) "+
+          rs_product = stmt2.executeQuery(
+            "SELECT p.id,Left(p.name,10),round(cast(sum(o.price * o.quantity) as numeric),2) "+
             "as amount "+
             "FROM products p left outer join orders o on p.id = o.product_id "+ 
             "where p.category_id = "+
             "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
-            "GROUP BY p.name "+
+            "GROUP BY p.name, p.id "+
             "ORDER BY amount DESC NULLs last "+
             "LIMIT 10 offset " + offsetProduct + " ;");
 
-          rs_product_check = stmt4.executeQuery(//
+          rs_product_check = stmt4.executeQuery(
             "select * from products p where " +
             "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
             "limit 10 offset " + offsetProductInc + " ;" );
         }
 
-        product_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from products p, orders o "+
-          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
-          "group by p.id; ");
-
         cell_amount = conn.prepareStatement(
           "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+ 
           "from users u left outer join orders o on o.user_id = u.id "+ 
           "where o.product_id = ? and u.state = ? and o.is_cart = false "+ 
-          "group by u.state ;");
+          "group by u.state;");
       }
 
 // ============================  State and Alphabetical ============================ //
@@ -268,31 +264,33 @@
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
-            "select id, Left(name,10) from products " +
-            "order by name ASC " +
-            "limit 10 offset " + offsetProduct + " ;" );
+            "SELECT p.id,Left(p.name,10),round(cast(sum( o.price * o.quantity) as numeric),2) "+
+            "as amount "+  
+            "FROM products p left outer join orders o on "+
+            "p.id = o.product_id "+
+            "GROUP BY p.name, p.id "+
+            "ORDER BY amount DESC NULLS LAST "+
+            "LIMIT 10 offset " + offsetProduct + " ;");
           rs_product_check = stmt4.executeQuery(
           "select * from products " +
           "limit 10 offset " + offsetProductInc + " ;" );
         }
         else{
           rs_product = stmt2.executeQuery(
-            "select id, Left(name,10) from products p where " +
-            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
-            "order by name ASC " +
-            "limit 10 offset " + offsetProduct + " ;" );
+            "SELECT p.id,Left(p.name,10),round(cast(sum(o.price * o.quantity) as numeric),2) "+
+            "as amount "+
+            "FROM products p left outer join orders o on p.id = o.product_id "+ 
+            "where p.category_id = "+
+            "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
+            "GROUP BY p.name, p.id "+
+            "ORDER BY amount DESC NULLs last "+
+            "LIMIT 10 offset " + offsetProduct + " ;");
 
           rs_product_check = stmt4.executeQuery(
             "select * from products p where " +
             "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
             "limit 10 offset " + offsetProductInc + " ;" );
         }
-
-        product_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from products p, orders o "+
-          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
-          "group by p.id; ");
 
         cell_amount = conn.prepareStatement(
           "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
@@ -392,23 +390,22 @@
           <option value = "top_k">Top-K</option>
        <%}%>
     </select>
+   
+
     <select name = "category_option" >
-      <option selected value = "all">All</option>
+      <option value = "all">All</option>
       <%while(rs_categories.next()){
           String category = rs_categories.getString("name");
           if(categoryOption != "" && 
             categoryOption.equals(category)) {%>
-            <option selected value="<%=category%>">
-              <%=category%>
-            </option>
+            <option selected value="<%=category%>"><%=category%></option>
           <%}
           else{%>
-            <option value="<%=category%>">
-              <%=category%>
-            </option>
+            <option value="<%=category%>"><%=category%></option>
           <%}
         }%>
     </select>
+    
     <input type="submit" value = "Run Query"/>
   </form>
 </div>
@@ -430,7 +427,6 @@
         <th><%=rs_product.getString("left") + " (" + productSpending + ")"%></th>
         <%productList.add(rs_product.getString("id"));   
       }
-
 
       ResultSet salesAmount = null;
 
@@ -486,6 +482,7 @@
         }
         %></tr><%
       }
+
     }
 } %>
 </table>
