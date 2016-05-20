@@ -183,8 +183,8 @@
 <div>
   <form action="orders.jsp" method="POST">
     <select name = "row_option" >
-      <%if(request.getParameter("row_option")!=null && 
-            request.getParameter("row_option").equals("states")) {%>
+      <%if(rowOption!= ""&& 
+            rowOption.equals("states")) {%>
           <option value = "customers">Customers</option>
           <option selected value = "states">States</option>
        <%} 
@@ -195,8 +195,8 @@
     </select>
 
     <select name = "order_option" >
-       <% if(request.getParameter("order_option")!=null && 
-            request.getParameter("order_option").equals("top_k")) {%>
+       <% if(orderOption !="" && 
+            orderOption.equals("top_k")) {%>
           <option value = "alphabetical">Alphabetical</option>
           <option selected value = "top_k">Top-K</option>      
        <%} 
