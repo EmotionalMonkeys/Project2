@@ -209,8 +209,8 @@
       <option selected value = "all">All</option>
       <%while(rs_categories.next()){
           String category = rs_categories.getString("name");
-          if(request.getParameter("category_option")!=null && 
-            request.getParameter("category_option").equals(category)) {%>
+          if(categoryOption != "" && 
+            categoryOption.equals(category)) {%>
             <option selected value="<%=category%>">
               <%=category%>
             </option>
