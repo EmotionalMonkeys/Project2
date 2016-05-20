@@ -313,6 +313,31 @@
     
     <input type="submit" value = "Run Query"/>
   </form>
+
+  <%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
+  <div> 
+    <%if( rs_product_check.next()){ %>
+      <form action= "orders.jsp" method="POST"> 
+        <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
+        <input type="submit" value = "Next 10 Products"/>
+      </form> 
+    <%}%>
+
+    <%if( rs_stateOrCustomer_check.next()){ %>
+      <form action= "orders.jsp" method="POST"> 
+        <input type="hidden" type="number" name="addCS" value="<%=offsetCSInc%>">
+        <%if (rowOption.equals("customers")){ %>
+          <input type="submit" value = "Next 20 Customers"/>
+        <%}
+          else{ %>
+          <input type="submit" value = "Next 20 States"/>
+        <%}%>
+
+      </form>
+    <%}%> 
+  </div>
+
+  <%}%>
 </div>
 
 
@@ -392,30 +417,7 @@
 } %>
 </table>
 
-<%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
-  <div> 
-    <%if( rs_product_check.next()){ %>
-      <form action= "orders.jsp" method="POST"> 
-        <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
-        <input type="submit" value = "Next 10 Products"/>
-      </form> 
-    <%}%>
 
-    <%if( rs_stateOrCustomer_check.next()){ %>
-      <form action= "orders.jsp" method="POST"> 
-        <input type="hidden" type="number" name="addCS" value="<%=offsetCSInc%>">
-        <%if (rowOption.equals("customers")){ %>
-          <input type="submit" value = "Next 20 Customers"/>
-        <%}
-          else{ %>
-          <input type="submit" value = "Next 20 States"/>
-        <%}%>
-
-      </form>
-    <%}%> 
-  </div>
-
-<%}%>
 
 </body>
 </html>
