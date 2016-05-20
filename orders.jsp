@@ -114,17 +114,31 @@
           "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
           "group by u.id; ");
 
-        rs_product = stmt2.executeQuery(
+        if(categoryOption.equals("all")){
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products " +
+            "order by name ASC " +
+            "limit 10 offset " + offsetProduct + " ;" );
+        }
+        else{
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products p where " +
+            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+            "order by name ASC " +
+            "limit 10 offset " + offsetProduct + " ;" );
+        }
+
+        rs_product_check = stmt4.executeQuery(
           "select id, Left(name,10) from products " +
           "order by name ASC " +
-          "limit 10;" );
+          "limit 10 offset " + offsetProductInc + " ;" );
 
         product_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
           "from products p, orders o "+
           "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
           "group by p.id; ");
-          
+
         cell_amount = conn.prepareStatement(
           "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
           "from orders o "+
@@ -134,11 +148,20 @@
     }
     else{ //selected customer
       if(orderOption.equals("top_k") ){
+        /*rs_stateOrCustomer = stmt.executeQuery(
+          "select id, name from users order by name desc limit 20");*/
+
+        customer_sale = conn.prepareStatement(
+          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+          "from orders o, users u "+ 
+          "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
+          "group by amount; ");
         
       }
       else{
         rs_stateOrCustomer = stmt.executeQuery(
           "select id, name from users order by name asc limit 20");
+
         customer_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
           "from orders o, users u "+ 
@@ -169,6 +192,7 @@
           "from products p, orders o "+
           "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
           "group by p.id; ");
+
         cell_amount = conn.prepareStatement(
           "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
           "from orders o "+
@@ -254,7 +278,7 @@
               customerSpending = customerAmount.getString("amount");
             }
             else
-                  customerSpending = "0";
+                customerSpending = "0";
           %>
           <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+customerSpending+")"%></b></td>
 
@@ -274,46 +298,40 @@
           }
 
         }
-        else if (request.getParameter("row_option").equals("states")) {%>
+        else if (rowOption.equals("states")) {%>
         <tr>
 
-            <%  state_sale.setInt(1, Integer.parseInt(rs_stateOrCustomer.getString("id")));
-                stateAmount = state_sale.executeQuery();
-                if(stateAmount!= null && stateAmount.next()){
-                  stateSpending = stateAmount.getString("amount");
-                }
-                else
-                  stateSpending = "0";
-            %>
-            <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+stateSpending+")"%></b></td>
-
-            <%for(int counter = 0; counter < productList.size(); counter++){
-                cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
-                cell_amount.setInt(2, Integer.parseInt(rs_stateOrCustomer.getString("id")));
-                salesAmount = cell_amount.executeQuery();
-
-                if (salesAmount!= null && salesAmount.next()){ %>
-                  <td><%= "$ " + salesAmount.getString("amount") %></td>
-                  <%
-                }
-                else {%>
-                  <td><%= "$ 0 "%></td><%
-                }
+          <%  state_sale.setInt(1, Integer.parseInt(rs_stateOrCustomer.getString("id")));
+              stateAmount = state_sale.executeQuery();
+              if(stateAmount!= null && stateAmount.next()){
+                stateSpending = stateAmount.getString("amount");
               }
+              else
+                stateSpending = "0";
+          %>
+          <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+stateSpending+")"%></b></td>
 
+          <%for(int counter = 0; counter < productList.size(); counter++){
+              cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
+              cell_amount.setInt(2, Integer.parseInt(rs_stateOrCustomer.getString("id")));
+              salesAmount = cell_amount.executeQuery();
+
+              if (salesAmount!= null && salesAmount.next()){ %>
+              <td><%= "$ " + salesAmount.getString("amount") %></td>
+              <%
+              }
+              else {%>
+                 <td><%= "$ 0 "%></td><%
+               }
+            }
           }
+
       }
   } %>
 </table>
 
 <%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
 <div> 
-  <%if(offsetProductDec >= 0){%>
-  <form action= "orders.jsp" method="POST"> 
-    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductDec%>"><%=offsetProductDecd%>
-    <input type="submit" value = "Previous 10 Product"/>
-  </form>
-  <%}%>
   <%if( rs_product_check.next()){ %>
     <form action= "orders.jsp" method="POST"> 
       <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>"><%=offsetProductInc%>
