@@ -244,6 +244,9 @@
         if(productAmount!= null && productAmount.next()){
           productSpending = productAmount.getString("amount");
         }
+        else{
+          productSpending = "0";
+        }
 
         %>
         <th><%=rs_product.getString("left") + " (" + productSpending + ")"%></th>
@@ -264,6 +267,9 @@
             customerAmount = customer_sale.executeQuery();
             if(customerAmount!= null && customerAmount.next()){
               customerSpending = customerAmount.getString("amount");
+            }
+            else{
+              customerSpending = "0";
             }
           %>
           <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+customerSpending+")"%></b></td>
