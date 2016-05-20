@@ -114,22 +114,24 @@
           "group by p.id; ");
 
         cell_amount = conn.prepareStatement(
-          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
-          "from orders o "+
-          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
+          "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+ 
+          "from users u left outer join orders o on o.user_id = u.id "+ 
+          "where o.product_id = ? and u.state = ? and o.is_cart = false "+ 
+          "group by u.state ;");
       }
 
 // ============================  State and Alphabetical ============================ //
       else{ //states alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
-        "select u.id, state,round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+        "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
         "from users u left outer join orders o on u.id = o.user_id "+
-        "group by u.id order by state asc limit 20; ");
+        "group by u.state order by state asc limit 20; ");
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
             "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " + 
             "from products p left outer join orders o on p.id = o.product_id " +
+            "where o.is_cart = false "+
             "group by p.id order by p.name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
 
@@ -141,7 +143,7 @@
           rs_product = stmt2.executeQuery(
             "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " +  
             "from products p left outer join orders o on p.id = o.product_id " +  
-            "where p.category_id = " +
+            "where o.is_cart = false and p.category_id = " +
             "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
             "group by p.id order by p.name ASC "+ 
             "limit 10 offset " + offsetProduct + " ;" );
@@ -152,9 +154,10 @@
           "limit 10 offset " + offsetProductInc + " ;" );
         }       
         cell_amount = conn.prepareStatement(
-          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
-          "from orders o "+
-          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
+          "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+ 
+          "from users u left outer join orders o on o.user_id = u.id "+ 
+          "where o.product_id = ? and u.state = ? and o.is_cart = false "+ 
+          "group by u.state ;");
 
       }
     }
@@ -214,6 +217,7 @@
           rs_product = stmt2.executeQuery(
             "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " + 
             "from products p left outer join orders o on p.id = o.product_id " +
+            "where o.is_cart = false " +
             "group by p.id order by p.name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
 
@@ -225,7 +229,7 @@
           rs_product = stmt2.executeQuery(
             "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " +  
             "from products p left outer join orders o on p.id = o.product_id " +  
-            "where p.category_id = " +
+            "where o.is_cart = false and p.category_id = " +
             "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
             "group by p.id order by p.name ASC "+ 
             "limit 10 offset " + offsetProduct + " ;" );
@@ -359,8 +363,9 @@
             amount+")"%></b></td>
 
         <%for(int counter = 0; counter < productList.size(); counter++){
-            cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
-            cell_amount.setInt(2, Integer.parseInt(rs_stateOrCustomer.getString("id")));
+            cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter))); 
+            cell_amount.setString(2, rs_stateOrCustomer.getString("state"));
+        
             salesAmount = cell_amount.executeQuery();
 
             if (salesAmount!= null && salesAmount.next()){ %>
