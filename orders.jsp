@@ -79,29 +79,39 @@
     if(rowOption.equals("states")){
       if(orderOption.equals("top_k") ){ //state top_K
         rs_stateOrCustomer = stmt.executeQuery(
-          "select distinct state, round(cast(sum(o.quantity*o.price) as numeric),2) as amount "+
+          "select distinct state, round(cast(sum(o.quantity*o.price) as numeric),2) "+ 
+          "as amount "+
           "from users u, orders o where u.id = o.user_id group by state "+
           "union select distinct state, 0 from users "+
           "where state not in(select distinct state from users u, orders o where u.id=o.user_id) "+
           "order by amount desc limit 20;");
 
         if(categoryOption.equals("all")){
-          rs_product = stmt2.executeQuery(
-            "select id, Left(name,10) from products " +
-            "order by name ASC " +
-            "limit 10 offset " + offsetProduct + " ;" );
-          rs_product_check = stmt4.executeQuery(
+          rs_product = stmt2.executeQuery(//
+            "SELECT Left(p.name,10),round(cast(sum( o.price * o.quantity) as numeric),2)" +
+            "as amount "+  
+            "FROM products p left outer join orders o on "+
+            "p.id = o.product_id "+
+            "GROUP BY p.name "+
+            "ORDER BY amount DESC NULLS LAST "+
+            "LIMIT 10 offset " + offsetProduct + " ;");
+
+          rs_product_check = stmt4.executeQuery(//
           "select * from products " +
           "limit 10 offset " + offsetProductInc + " ;" );
         }
-        else{
-          rs_product = stmt2.executeQuery(
-            "select id, Left(name,10) from products p where " +
-            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
-            "order by name ASC " +
-            "limit 10 offset " + offsetProduct + " ;" );
+        else{ //selected category
+          rs_product = stmt2.executeQuery(//
+            "SELECT Left(p.name,10),round(cast(sum(o.price * o.quantity) as numeric),2) "+
+            "as amount "+
+            "FROM products p left outer join orders o on p.id = o.product_id "+ 
+            "where p.category_id = "+
+            "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
+            "GROUP BY p.name "+
+            "ORDER BY amount DESC NULLs last "+
+            "LIMIT 10 offset " + offsetProduct + " ;");
 
-          rs_product_check = stmt4.executeQuery(
+          rs_product_check = stmt4.executeQuery(//
             "select * from products p where " +
             "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
             "limit 10 offset " + offsetProductInc + " ;" );
@@ -363,6 +373,7 @@
             amount+")"%></b></td>
 
         <%for(int counter = 0; counter < productList.size(); counter++){
+
             cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter))); 
             cell_amount.setString(2, rs_stateOrCustomer.getString("state"));
         
