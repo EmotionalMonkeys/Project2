@@ -72,57 +72,76 @@
       session.setAttribute("order_option", orderOption);
     }
 
+// ============================  Product Display ============================ //
+    if(orderOption.equals("top_k") ){ 
+      if(categoryOption.equals("all")){
+        rs_product = stmt2.executeQuery(
+          "SELECT p.id,Left(p.name,10),round(cast(sum( o.price * o.quantity) as numeric),2) "+
+          "as amount "+  
+          "FROM products p left outer join orders o on "+
+          "p.id = o.product_id "+
+          "GROUP BY p.name, p.id "+
+          "ORDER BY amount DESC NULLS LAST "+
+          "LIMIT 10 offset " + offsetProduct + " ;");
 
+        rs_product_check = stmt4.executeQuery(//
+        "select * from products " +
+        "limit 10 offset " + offsetProductInc + " ;" );
+      }
+      else{ //selected category
+        rs_product = stmt2.executeQuery(
+          "SELECT p.id,Left(p.name,10),round(cast(sum(o.price * o.quantity) as numeric),2) "+
+          "as amount "+
+          "FROM products p left outer join orders o on p.id = o.product_id "+ 
+          "where p.category_id = "+
+          "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
+          "GROUP BY p.name, p.id "+
+          "ORDER BY amount DESC NULLs last "+
+          "LIMIT 10 offset " + offsetProduct + " ;");
+
+        rs_product_check = stmt4.executeQuery(
+          "select * from products p where " +
+          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+          "limit 10 offset " + offsetProductInc + " ;" );
+      }
+    }
+    else{
+      if(categoryOption.equals("all")){
+        rs_product = stmt2.executeQuery(
+          "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " + 
+          "from products p left outer join orders o on p.id = o.product_id " +
+          "where o.is_cart = false "+
+          "group by p.id order by p.name ASC " +
+          "limit 10 offset " + offsetProduct + " ;" );
+
+        rs_product_check = stmt4.executeQuery(
+        "select * from products " +
+        "limit 10 offset " + offsetProductInc + " ;" );
+      }
+      else{
+        rs_product = stmt2.executeQuery(
+          "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " +  
+          "from products p left outer join orders o on p.id = o.product_id " +  
+          "where o.is_cart = false and p.category_id = " +
+          "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
+          "group by p.id order by p.name ASC "+ 
+          "limit 10 offset " + offsetProduct + " ;" );
+
+        rs_product_check = stmt4.executeQuery(
+        "select * from products p where " +
+        "p.category_id=(select id from categories where name = "+ "\'" +categoryOption + "\'"+ ") " +
+        "limit 10 offset " + offsetProductInc + " ;" );
+      } 
+    }
 // ============================  State and Top_K ============================ //
-
     if(rowOption.equals("states")){
-      if(orderOption.equals("top_k") ){ //state top_K%>
-        <h1>SELECTED state topk</h1><%
+      if(orderOption.equals("top_k") ){ 
         rs_stateOrCustomer = stmt.executeQuery(
           "select distinct state, round(cast(sum(o.quantity*o.price) as numeric),2) "+ 
           "as amount "+
           "from users u left outer join orders o on u.id = o.user_id group by state "+
           "order by amount desc nulls last limit 20;");
-
-        if(categoryOption.equals("all")){%>
-          <h1>SELECTED all</h1><%
-          rs_product = stmt2.executeQuery(
-            "SELECT p.id,Left(p.name,10),round(cast(sum( o.price * o.quantity) as numeric),2) "+
-            "as amount "+  
-            "FROM products p left outer join orders o on "+
-            "p.id = o.product_id "+
-            "GROUP BY p.name, p.id "+
-            "ORDER BY amount DESC NULLS LAST "+
-            "LIMIT 10 offset " + offsetProduct + " ;");
-
-          rs_product_check = stmt4.executeQuery(//
-          "select * from products " +
-          "limit 10 offset " + offsetProductInc + " ;" );
-        }
-        else{ //selected category
-          rs_product = stmt2.executeQuery(
-            "SELECT p.id,Left(p.name,10),round(cast(sum(o.price * o.quantity) as numeric),2) "+
-            "as amount "+
-            "FROM products p left outer join orders o on p.id = o.product_id "+ 
-            "where p.category_id = "+
-            "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
-            "GROUP BY p.name, p.id "+
-            "ORDER BY amount DESC NULLs last "+
-            "LIMIT 10 offset " + offsetProduct + " ;");
-
-          rs_product_check = stmt4.executeQuery(
-            "select * from products p where " +
-            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
-            "limit 10 offset " + offsetProductInc + " ;" );
-        }
-
-        cell_amount = conn.prepareStatement(
-          "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+ 
-          "from users u left outer join orders o on o.user_id = u.id "+ 
-          "where o.product_id = ? and u.state = ? and o.is_cart = false "+ 
-          "group by u.state;");
       }
-
 // ============================  State and Alphabetical ============================ //
       else{ //states alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
@@ -130,87 +149,22 @@
         "from users u left outer join orders o on u.id = o.user_id "+
         "group by u.state order by state asc limit 20; ");
 
-        if(categoryOption.equals("all")){
-          rs_product = stmt2.executeQuery(
-            "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " + 
-            "from products p left outer join orders o on p.id = o.product_id " +
-            "where o.is_cart = false "+
-            "group by p.id order by p.name ASC " +
-            "limit 10 offset " + offsetProduct + " ;" );
-
-          rs_product_check = stmt4.executeQuery(
-          "select * from products " +
-          "limit 10 offset " + offsetProductInc + " ;" );
-        }
-        else{
-          rs_product = stmt2.executeQuery(
-            "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " +  
-            "from products p left outer join orders o on p.id = o.product_id " +  
-            "where o.is_cart = false and p.category_id = " +
-            "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
-            "group by p.id order by p.name ASC "+ 
-            "limit 10 offset " + offsetProduct + " ;" );
-
-          rs_product_check = stmt4.executeQuery(
-          "select * from products p where " +
-          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption + "\'"+ ") " +
-          "limit 10 offset " + offsetProductInc + " ;" );
-        }       
-        cell_amount = conn.prepareStatement(
-          "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+ 
-          "from users u left outer join orders o on o.user_id = u.id "+ 
-          "where o.product_id = ? and u.state = ? and o.is_cart = false "+ 
-          "group by u.state ;");
-
       }
+      cell_amount = conn.prepareStatement(
+        "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+ 
+        "from users u left outer join orders o on o.user_id = u.id "+ 
+        "where o.product_id = ? and u.state = ? and o.is_cart = false "+ 
+        "group by u.state ;");
     }
 // ============================  Customer and Top_K ============================ //
     else{ //selected customer
       if(orderOption.equals("top_k") ){ //customer, top-k
         rs_stateOrCustomer = stmt.executeQuery(
-          "select name, round(cast(sum(o.quantity*o.price) as numeric),2) as amount "+
-          "from users u, orders o where u.id = o.user_id group by name "+
-          "union select name, 0 from users "+
-          "where name not in(select name from users u, orders o where u.id=o.user_id) "+
-          "order by amount desc limit 20;");
-
-        if(categoryOption.equals("all")){
-          rs_product = stmt2.executeQuery(
-            "SELECT p.id,Left(p.name,10),round(cast(sum( o.price * o.quantity) as numeric),2) "+
-            "as amount "+  
-            "FROM products p left outer join orders o on "+
-            "p.id = o.product_id "+
-            "GROUP BY p.name, p.id "+
-            "ORDER BY amount DESC NULLS LAST "+
-            "LIMIT 10 offset " + offsetProduct + " ;");
-          rs_product_check = stmt4.executeQuery(
-          "select * from products " +
-          "limit 10 offset " + offsetProductInc + " ;" );
-        }
-        else{
-          rs_product = stmt2.executeQuery(
-            "SELECT p.id,Left(p.name,10),round(cast(sum(o.price * o.quantity) as numeric),2) "+
-            "as amount "+
-            "FROM products p left outer join orders o on p.id = o.product_id "+ 
-            "where p.category_id = "+
-            "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
-            "GROUP BY p.name, p.id "+
-            "ORDER BY amount DESC NULLs last "+
-            "LIMIT 10 offset " + offsetProduct + " ;");
-
-          rs_product_check = stmt4.executeQuery(
-            "select * from products p where " +
-            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
-            "limit 10 offset " + offsetProductInc + " ;" );
-        }
-
-        cell_amount = conn.prepareStatement(
-          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
-          "from orders o "+
-          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
-        
+          "select u.id, name,round(cast(sum(o.quantity*o.price) as numeric),2) "+ 
+          "as amount "+
+          "from users u left outer join orders o on u.id = o.user_id group by u.id "+
+          "order by amount desc nulls last limit 20;");
       }
-
 // ============================  Customer and Alphabetical ============================ //
       else{ //customer, alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
@@ -218,39 +172,11 @@
         "from users u left outer join orders o on u.id = o.user_id "+
         "group by u.id order by u.name asc limit 20; ");
 
-        if(categoryOption.equals("all")){
-          rs_product = stmt2.executeQuery(
-            "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " + 
-            "from products p left outer join orders o on p.id = o.product_id " +
-            "where o.is_cart = false " +
-            "group by p.id order by p.name ASC " +
-            "limit 10 offset " + offsetProduct + " ;" );
-
-          rs_product_check = stmt4.executeQuery(
-          "select * from products " +
-          "limit 10 offset " + offsetProductInc + " ;" );
-        }
-        else{
-          rs_product = stmt2.executeQuery(
-            "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " +  
-            "from products p left outer join orders o on p.id = o.product_id " +  
-            "where o.is_cart = false and p.category_id = " +
-            "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
-            "group by p.id order by p.name ASC "+ 
-            "limit 10 offset " + offsetProduct + " ;" );
-
-          rs_product_check = stmt4.executeQuery(
-          "select * from products p where " +
-          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption + "\'"+ ") " +
-          "limit 10 offset " + offsetProductInc + " ;" );
-        }       
-
-
-        cell_amount = conn.prepareStatement(
-          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
-          "from orders o "+
-          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
       }
+      cell_amount = conn.prepareStatement(
+        "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
+        "from orders o "+
+        "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
     }
   }
 %>
