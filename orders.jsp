@@ -58,11 +58,6 @@
       session.setAttribute("category_option", categoryOption);
     }
 
-    %>
-    <h1><%=categoryOption%></h1>
-    <%
-
-
     if( request.getParameter("row_option") == null){
       rowOption = (String)session.getAttribute("row_option");
     }
@@ -79,46 +74,23 @@
       session.setAttribute("order_option", orderOption);
     }
 
-
-
     if(rowOption.equals("states")){
-      if(orderOption.equals("top_k") ){
-       /* rs_stateOrCustomer = stmt.executeQuery(
-          "select id, state from users order by state desc limit 20");
-        state_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from orders o, users u "+ 
-          "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
-          "group by u.id; ");
-        rs_product = stmt2.executeQuery(
-          "select id, Left(name,10) from products " +
-          "order by name ASC " +
-          "limit 10;" );
-        product_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from products p, orders o "+
-          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
-          "group by p.id; ");
-        cell_amount = conn.prepareStatement(
-          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
-          "from orders o "+
-          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");*/
-      }
-      else{
+      if(orderOption.equals("top_k") ){ //state top_K
         rs_stateOrCustomer = stmt.executeQuery(
-          "select id, state from users order by state asc limit 20");
-
-        state_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from orders o, users u "+ 
-          "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
-          "group by u.id; ");
+          "select distinct state, round(cast(sum(o.quantity*o.price) as numeric),2) as amount "+
+          "from users u, orders o where u.id = o.user_id group by state "+
+          "union select distinct state, 0 from users "+
+          "where state not in(select distinct state from users u, orders o where u.id=o.user_id) "+
+          "order by amount desc limit 20;");
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
             "select id, Left(name,10) from products " +
             "order by name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
+          rs_product_check = stmt4.executeQuery(
+          "select * from products " +
+          "limit 10 offset " + offsetProductInc + " ;" );
         }
         else{
           rs_product = stmt2.executeQuery(
@@ -126,12 +98,12 @@
             "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
             "order by name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
-        }
 
-        rs_product_check = stmt4.executeQuery(
-          "select id, Left(name,10) from products " +
-          "order by name ASC " +
-          "limit 10 offset " + offsetProductInc + " ;" );
+          rs_product_check = stmt4.executeQuery(
+            "select * from products p where " +
+            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+            "limit 10 offset " + offsetProductInc + " ;" );
+        }
 
         product_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
@@ -145,34 +117,20 @@
           "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
       }
 
-    }
-    else{ //selected customer
-      if(orderOption.equals("top_k") ){
-        /*rs_stateOrCustomer = stmt.executeQuery(
-          "select id, name from users order by name desc limit 20");*/
-
-        customer_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from orders o, users u "+ 
-          "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
-          "group by amount; ");
-        
-      }
-      else{
+      else{ //states alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
-          "select id, name from users order by name asc limit 20");
-
-        customer_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from orders o, users u "+ 
-          "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
-          "group by u.id; ");
+        "select u.id, state,round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+        "from users u left outer join orders o on u.id = o.user_id "+
+        "group by u.id order by state asc limit 20; ");
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
             "select id, Left(name,10) from products " +
             "order by name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
+          rs_product_check = stmt4.executeQuery(
+          "select * from products " +
+          "limit 10 offset " + offsetProductInc + " ;" );
         }
         else{
           rs_product = stmt2.executeQuery(
@@ -180,12 +138,97 @@
             "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
             "order by name ASC " +
             "limit 10 offset " + offsetProduct + " ;" );
+
+          rs_product_check = stmt4.executeQuery(
+          "select * from products p where " +
+          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+          "limit 10 offset " + offsetProductInc + " ;" );
+        }       
+
+        product_sale = conn.prepareStatement(
+          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+          "from products p, orders o "+
+          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
+          "group by p.id; ");
+
+        cell_amount = conn.prepareStatement(
+          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
+          "from orders o "+
+          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
+
+      }
+    }
+
+    else{ //selected customer
+      if(orderOption.equals("top_k") ){ //customer, top-k
+        rs_stateOrCustomer = stmt.executeQuery(
+          "select name, round(cast(sum(o.quantity*o.price) as numeric),2) as amount "+
+          "from users u, orders o where u.id = o.user_id group by name "+
+          "union select name, 0 from users "+
+          "where name not in(select name from users u, orders o where u.id=o.user_id) "+
+          "order by amount desc limit 20;");
+
+        if(categoryOption.equals("all")){
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products " +
+            "order by name ASC " +
+            "limit 10 offset " + offsetProduct + " ;" );
+          rs_product_check = stmt4.executeQuery(
+          "select * from products " +
+          "limit 10 offset " + offsetProductInc + " ;" );
+        }
+        else{
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products p where " +
+            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+            "order by name ASC " +
+            "limit 10 offset " + offsetProduct + " ;" );
+
+          rs_product_check = stmt4.executeQuery(
+            "select * from products p where " +
+            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+            "limit 10 offset " + offsetProductInc + " ;" );
         }
 
-        rs_product_check = stmt4.executeQuery(
-          "select id, Left(name,10) from products " +
-          "order by name ASC " +
+        product_sale = conn.prepareStatement(
+          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+          "from products p, orders o "+
+          "where p.id = ? and o.product_id = p.id and o.is_cart = false "+
+          "group by p.id; ");
+
+        cell_amount = conn.prepareStatement(
+          "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
+          "from orders o "+
+          "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
+        
+      }
+      else{ //customer, alphabetical
+        rs_stateOrCustomer = stmt.executeQuery(
+        "select u.id,name,round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+        "from users u left outer join orders o on u.id = o.user_id "+
+        "group by u.id order by name asc limit 20; ");
+
+        if(categoryOption.equals("all")){
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products " +
+            "order by name ASC " +
+            "limit 10 offset " + offsetProduct + " ;" );
+          rs_product_check = stmt4.executeQuery(
+          "select * from products " +
           "limit 10 offset " + offsetProductInc + " ;" );
+        }
+        else{
+          rs_product = stmt2.executeQuery(
+            "select id, Left(name,10) from products p where " +
+            "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+            "order by name ASC " +
+            "limit 10 offset " + offsetProduct + " ;" );
+
+          rs_product_check = stmt4.executeQuery(
+          "select * from products p where " +
+          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
+          "limit 10 offset " + offsetProductInc + " ;" );
+        }       
 
         product_sale = conn.prepareStatement(
           "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
@@ -216,22 +259,45 @@
 <div>
   <form action="orders.jsp" method="POST">
     <select name = "row_option" >
-      <option value = "customers" name = "customers">Customers</option>
-      <option value = "states">States</option>
-    </select>
-    <select name = "order_option" >
-      <option value = "alphabetical">Alphabetical</option>
-      <option value = "top_k">Top-K</option>
-    </select>
-    <select name = "category_option" >
-      <option value = "all">All</option>
-      <%while(rs_categories.next()){%>
-        <option value="<%=rs_categories.getString("name")%>">
-          <%=rs_categories.getString("name")%>
-        </option>
-      <%}%>
+      <%if(rowOption!= ""&& 
+            rowOption.equals("states")) {%>
+          <option value = "customers">Customers</option>
+          <option selected value = "states">States</option>
+       <%} 
+       else{%>
+          <option selected value = "customers">Customers</option>
+          <option value = "states">States</option>
+       <%}%>
     </select>
 
+    <select name = "order_option" >
+       <% if(orderOption !="" && 
+            orderOption.equals("top_k")) {%>
+          <option value = "alphabetical">Alphabetical</option>
+          <option selected value = "top_k">Top-K</option>      
+       <%} 
+       else{%>
+          <option selected value = "alphabetical">Alphabetical</option>
+          <option value = "top_k">Top-K</option>
+       <%}%>
+    </select>
+    <select name = "category_option" >
+      <option selected value = "all">All</option>
+      <%while(rs_categories.next()){
+          String category = rs_categories.getString("name");
+          if(categoryOption != "" && 
+            categoryOption.equals(category)) {%>
+            <option selected value="<%=category%>">
+              <%=category%>
+            </option>
+          <%}
+          else{%>
+            <option value="<%=category%>">
+              <%=category%>
+            </option>
+          <%}
+        }%>
+    </select>
     <input type="submit" value = "Run Query"/>
   </form>
 </div>
@@ -246,7 +312,6 @@
          
       ResultSet productAmount = null;
       String productSpending = "0";
-
       
       while(rs_product.next()){
         product_sale.setInt(1, Integer.parseInt(rs_product.getString("id")));
@@ -254,33 +319,26 @@
         if(productAmount!= null && productAmount.next()){
           productSpending = productAmount.getString("amount");
         }
+        else{
+          productSpending = "0";
+        }
 
         %>
         <th><%=rs_product.getString("left") + " (" + productSpending + ")"%></th>
         <%productList.add(rs_product.getString("id"));   
       }
 
-     
-      ResultSet customerAmount = null;
-      ResultSet stateAmount = null;
-      String customerSpending = "0"; 
-      String stateSpending = "0"; 
 
       ResultSet salesAmount = null;
 
       while (rs_stateOrCustomer.next()) { 
         if (rowOption.equals("customers")){%>
         <tr>
-
-        <%  customer_sale.setInt(1, Integer.parseInt(rs_stateOrCustomer.getString("id")));
-            customerAmount = customer_sale.executeQuery();
-            if(customerAmount!= null && customerAmount.next()){
-              customerSpending = customerAmount.getString("amount");
-            }
-            else
-                customerSpending = "0";
-          %>
-          <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+customerSpending+")"%></b></td>
+          <%String amount = 
+            ((rs_stateOrCustomer.getString("amount") == null) ? "0" : 
+            rs_stateOrCustomer.getString("amount"));%>
+          <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+
+            amount+")"%></b></td>
 
         <%for(int counter = 0; counter < productList.size(); counter++){
             cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
@@ -296,42 +354,46 @@
               <%
             }
           }
-
+          %></tr><%
         }
+
         else if (rowOption.equals("states")) {%>
-        <tr>
+          <tr>
+          <%String amount = 
+            ((rs_stateOrCustomer.getString("amount") == null) ? "0" : 
+            rs_stateOrCustomer.getString("amount"));%>
+          <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+
+            amount+")"%></b></td>
 
-          <%  state_sale.setInt(1, Integer.parseInt(rs_stateOrCustomer.getString("id")));
-              stateAmount = state_sale.executeQuery();
-              if(stateAmount!= null && stateAmount.next()){
-                stateSpending = stateAmount.getString("amount");
-              }
-              else
-                stateSpending = "0";
-          %>
-          <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+stateSpending+")"%></b></td>
+        <%for(int counter = 0; counter < productList.size(); counter++){
+            cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
+            cell_amount.setInt(2, Integer.parseInt(rs_stateOrCustomer.getString("id")));
+            salesAmount = cell_amount.executeQuery();
 
-          <%for(int counter = 0; counter < productList.size(); counter++){
-              cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
-              cell_amount.setInt(2, Integer.parseInt(rs_stateOrCustomer.getString("id")));
-              salesAmount = cell_amount.executeQuery();
-
-              if (salesAmount!= null && salesAmount.next()){ %>
+            if (salesAmount!= null && salesAmount.next()){ %>
               <td><%= "$ " + salesAmount.getString("amount") %></td>
               <%
-              }
-              else {%>
-                 <td><%= "$ 0 "%></td><%
-               }
+            }
+            else {%>
+              <td><%= "$ 0 "%></td>
+              <%
             }
           }
-
+          %></tr><%
+        }
       }
   } %>
 </table>
 
 <%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
 <div> 
+  <%if(offsetProductDec >= 0){%>
+  <form action= "orders.jsp" method="POST"> 
+    <input type="hidden" type="number" name="addProduct" value="<%=offsetProductDec%>"><%=offsetProductDec%>
+    <input type="submit" value = "Previous 10 Product"/>
+  </form>
+  <%}%>
+
   <%if( rs_product_check.next()){ %>
     <form action= "orders.jsp" method="POST"> 
       <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>"><%=offsetProductInc%>
