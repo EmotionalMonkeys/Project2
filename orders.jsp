@@ -14,7 +14,7 @@
   ResultSet rs_product = null;
   ResultSet rs_product_check = null;
   PreparedStatement cell_amount = null;
-  PreparedStatement customer_sale = null;
+
   PreparedStatement product_sale = null;
   int offsetProduct = 0;
   int offsetProductInc = 0;
@@ -124,12 +124,9 @@
       }
       else{ //customer, alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
-          "select id, name from users order by name asc limit 20");
-        customer_sale = conn.prepareStatement(
-          "select round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
-          "from orders o, users u "+ 
-          "where u.id = ? and u.id = o.user_id and o.is_cart = false " +
-          "group by u.id; ");
+        "select u.id,name,round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+        "from users u left outer join orders o on u.id = o.user_id "+
+        "group by u.id order by name asc limit 20; ");
 
         if(categoryOption.equals("all")){
           rs_product = stmt2.executeQuery(
@@ -236,7 +233,6 @@
          
       ResultSet productAmount = null;
       String productSpending = "0";
-
       
       while(rs_product.next()){
         product_sale.setInt(1, Integer.parseInt(rs_product.getString("id")));
@@ -253,26 +249,16 @@
         <%productList.add(rs_product.getString("id"));   
       }
 
-     
-      ResultSet customerAmount = null;
-      String customerSpending = "0"; 
-
       ResultSet salesAmount = null;
 
       while (rs_stateOrCustomer.next()) { 
         if (rowOption.equals("customers")){%>
         <tr>
-
-        <%  customer_sale.setInt(1, Integer.parseInt(rs_stateOrCustomer.getString("id")));
-            customerAmount = customer_sale.executeQuery();
-            if(customerAmount!= null && customerAmount.next()){
-              customerSpending = customerAmount.getString("amount");
-            }
-            else{
-              customerSpending = "0";
-            }
-          %>
-          <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+customerSpending+")"%></b></td>
+          <%String amount = 
+            ((rs_stateOrCustomer.getString("amount") == null) ? "0" : 
+            rs_stateOrCustomer.getString("amount"));%>
+          <td><b><%=rs_stateOrCustomer.getString("name")+ " ("+
+            amount+")"%></b></td>
 
         <%for(int counter = 0; counter < productList.size(); counter++){
             cell_amount.setInt(1, Integer.valueOf((String)productList.get(counter)));
