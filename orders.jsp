@@ -397,7 +397,7 @@
     <%if( rs_product_check.next()){ %>
       <form action= "orders.jsp" method="POST"> 
         <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
-        <input type="submit" value = "Next 10 Product"/>
+        <input type="submit" value = "Next 10 Products"/>
       </form> 
     <%}%>
 
@@ -405,10 +405,10 @@
       <form action= "orders.jsp" method="POST"> 
         <input type="hidden" type="number" name="addCS" value="<%=offsetCSInc%>">
         <%if (rowOption.equals("customers")){ %>
-          <input type="submit" value = "Next 20 Customer"/>
+          <input type="submit" value = "Next 20 Customers"/>
         <%}
           else{ %>
-          <input type="submit" value = "Next 20 State"/>
+          <input type="submit" value = "Next 20 States"/>
         <%}%>
 
       </form>
