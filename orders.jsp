@@ -351,7 +351,7 @@
         <%String amount = 
           ((rs_stateOrCustomer.getString("amount") == null) ? "0" : 
           rs_stateOrCustomer.getString("amount"));%>
-        <td><b><%=rs_stateOrCustomer.getString("state")+ " ("+
+        <td><b><%=rs_stateOrCustomer.getString("state")+ " ($ "+
           amount+")"%></b></td>
 
       <%for(int counter = 0; counter < productList.size(); counter++){
