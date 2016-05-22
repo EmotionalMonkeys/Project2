@@ -45,7 +45,7 @@
   ResultSet rs_categories = stmt3.executeQuery("select name from categories");
 
   if ("POST".equalsIgnoreCase(request.getMethod())) {
-        if( request.getParameter("category_option") == null){
+    if( request.getParameter("category_option") == null){
       categoryOption = (String)session.getAttribute("category_option");
     }
     else{
@@ -271,6 +271,7 @@
 </div>
 
 <div>
+  <% if (offsetCS == 0 && offsetProduct ==0 ) {%>
   <form action="orders.jsp" method="POST">
     <select name = "row_option" >
       <%if(rowOption!= ""&& 
@@ -310,9 +311,11 @@
           <%}
         }%>
     </select>
+
     
     <input type="submit" value = "Run Query"/>
   </form>
+  <%}%>
 
   <%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
   <div> 
