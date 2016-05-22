@@ -45,7 +45,7 @@
   ResultSet rs_categories = stmt3.executeQuery("select name from categories");
 
   if ("POST".equalsIgnoreCase(request.getMethod())) {
-        if( request.getParameter("category_option") == null){
+    if( request.getParameter("category_option") == null){
       categoryOption = (String)session.getAttribute("category_option");
     }
     else{
@@ -125,8 +125,13 @@
           "LIMIT 10 offset " + offsetProduct + " ;");
 
         rs_product_check = stmt4.executeQuery(//
-        "select * from products " +
-        "limit 10 offset " + offsetProductInc + " ;" );
+          "SELECT p.id "+
+          "as amount "+  
+          "FROM products p left outer join orders o on "+
+          "p.id = o.product_id "+
+          "GROUP BY p.name, p.id "+
+          "ORDER BY amount DESC NULLS LAST "+
+          "LIMIT 10 offset " + offsetProductInc + " ;");
       }
       else{ //selected category
         rs_product = stmt2.executeQuery(
@@ -140,9 +145,14 @@
           "LIMIT 10 offset " + offsetProduct + " ;");
 
         rs_product_check = stmt4.executeQuery(
-          "select * from products p where " +
-          "p.category_id=(select id from categories where name = "+ "\'" +categoryOption +   "\'"+ ") " +
-          "limit 10 offset " + offsetProductInc + " ;" );
+          "SELECT p.id "+
+          "as amount "+
+          "FROM products p left outer join orders o on p.id = o.product_id "+ 
+          "where p.category_id = "+
+          "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
+          "GROUP BY p.name, p.id "+
+          "ORDER BY amount DESC NULLs last "+
+          "LIMIT 10 offset " + offsetProductInc + " ;");
       }
     }
 // ============================  Product alphabetical ============================ //
@@ -156,8 +166,11 @@
           "limit 10 offset " + offsetProduct + " ;" );
 
         rs_product_check = stmt4.executeQuery(
-        "select * from products " +
-        "limit 10 offset " + offsetProductInc + " ;" );
+          "select p.id " + 
+          "from products p left outer join orders o on p.id = o.product_id " +
+          "where o.is_cart = false "+
+          "group by p.id order by p.name ASC " +
+          "limit 10 offset " + offsetProductInc + " ;" );
       }
       else{
         rs_product = stmt2.executeQuery(
@@ -169,10 +182,12 @@
           "limit 10 offset " + offsetProduct + " ;" );
 
         rs_product_check = stmt4.executeQuery(
-        "select * from products p where " +
-        "p.category_id=(select id from categories where name = "+ 
-        "\'" +categoryOption + "\'"+ ") " +
-        "limit 10 offset " + offsetProductInc + " ;" );
+        "select p.id " +  
+          "from products p left outer join orders o on p.id = o.product_id " +  
+          "where o.is_cart = false and p.category_id = " +
+          "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
+          "group by p.id order by p.name ASC "+ 
+          "limit 10 offset " + offsetProductInc + " ;" );
       } 
     }   
 // ============================  State and Top_K ============================ //
@@ -198,7 +213,7 @@
         "group by u.state order by state asc limit 20 offset "+ offsetCS + " ;");
 
         rs_stateOrCustomer_check = stmt5.executeQuery(
-        "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+        "select u.state "+
         "from users u left outer join orders o on u.id = o.user_id "+
         "group by u.state order by state asc limit 20 offset "+ offsetCSInc + " ;");
 
@@ -219,7 +234,7 @@
           "order by amount desc nulls last limit 20 offset "+ offsetCS + " ;");
 
         rs_stateOrCustomer_check = stmt5.executeQuery(
-          "select u.id, name,round(cast(sum(o.quantity*o.price) as numeric),2) "+ 
+          "select u.id "+ 
           "as amount "+
           "from users u left outer join orders o on u.id = o.user_id group by u.id "+
           "order by amount desc nulls last limit 20 offset "+ offsetCSInc + " ;"); 
@@ -256,6 +271,7 @@
 </div>
 
 <div>
+  <% if (offsetCS == 0 && offsetProduct ==0 ) {%>
   <form action="orders.jsp" method="POST">
     <select name = "row_option" >
       <%if(rowOption!= ""&& 
@@ -295,9 +311,36 @@
           <%}
         }%>
     </select>
+
     
     <input type="submit" value = "Run Query"/>
   </form>
+  <%}%>
+
+  <%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
+  <div> 
+    <%if( rs_product_check.next()){ %>
+      <form action= "orders.jsp" method="POST"> 
+        <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
+        <input type="submit" value = "Next 10 Products"/>
+      </form> 
+    <%}%>
+
+    <%if( rs_stateOrCustomer_check.next()){ %>
+      <form action= "orders.jsp" method="POST"> 
+        <input type="hidden" type="number" name="addCS" value="<%=offsetCSInc%>">
+        <%if (rowOption.equals("customers")){ %>
+          <input type="submit" value = "Next 20 Customers"/>
+        <%}
+          else{ %>
+          <input type="submit" value = "Next 20 States"/>
+        <%}%>
+
+      </form>
+    <%}%> 
+  </div>
+
+  <%}%>
 </div>
 
 
@@ -377,30 +420,7 @@
 } %>
 </table>
 
-<%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
-  <div> 
-    <%if( rs_product_check.next()){ %>
-      <form action= "orders.jsp" method="POST"> 
-        <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
-        <input type="submit" value = "Next 10 Product"/>
-      </form> 
-    <%}%>
 
-    <%if( rs_stateOrCustomer_check.next()){ %>
-      <form action= "orders.jsp" method="POST"> 
-        <input type="hidden" type="number" name="addCS" value="<%=offsetCSInc%>">
-        <%if (rowOption.equals("customers")){ %>
-          <input type="submit" value = "Next 20 Customer"/>
-        <%}
-          else{ %>
-          <input type="submit" value = "Next 20 State"/>
-        <%}%>
-
-      </form>
-    <%}%> 
-  </div>
-
-<%}%>
 
 </body>
 </html>
