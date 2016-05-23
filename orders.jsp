@@ -294,7 +294,7 @@
 
       ResultSet salesAmount = null;
 
-      for(int i = 0; i < 10 && rs_stateOrCustomer.next(); i++){
+      for(int i = 0; i < 20 && rs_stateOrCustomer.next(); i++){
       //while (rs_stateOrCustomer.next()) { 
         if (rowOption.equals("customers")){%>
         <tr>
