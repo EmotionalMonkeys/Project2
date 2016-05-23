@@ -58,6 +58,7 @@
 		<li><a href="browsing.jsp">Product Browsing</a></li>
 		<li><a href="carts.jsp">Carts</a></li>
 		<li><a href="purchases.jsp">Purchases</a></li>
+		<li><a href="similar_products.jsp">Similar Products</a></li>
 		<li><a href="login.jsp">Logout</a></li>
 	</ul>
 </div>

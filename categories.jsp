@@ -65,6 +65,7 @@
 		<li><a href="categories.jsp">Categories</a></li>
 		<li><a href="products.jsp">Products</a></li>
 		<li><a href="orders.jsp">Orders</a></li>
+		<li><a href="similar_products.jsp">Similar Products</a></li>
 		<li><a href="login.jsp">Logout</a></li>
 	</ul>
 </div>

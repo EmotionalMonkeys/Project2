@@ -54,9 +54,6 @@
       offsetp = offsetcs = "0";
       session.setAttribute("offsetp", offsetp);
       session.setAttribute("offsetcs", offsetcs);
-
-
-     
     }
 
     if( request.getParameter("row_option") == null){
@@ -68,7 +65,6 @@
       offsetp = offsetcs = "0";
       session.setAttribute("offsetp", offsetp);
       session.setAttribute("offsetcs", offsetcs);
-
       
     }
 
@@ -81,10 +77,7 @@
       offsetp = offsetcs = "0";
       session.setAttribute("offsetp", offsetp);
       session.setAttribute("offsetcs", offsetcs);
-
-
     }
-
 
     if (request.getParameter("addProduct")== null && session.getAttribute("offsetp") != null){
       offsetp = (String)session.getAttribute("offsetp");
@@ -97,8 +90,6 @@
       session.setAttribute("offsetp", offsetp);
     }
      offsetProductInc = offsetProduct + 10;
-
-
 
     if (request.getParameter("addCS")== null && session.getAttribute("offsetcs") != null){
       offsetcs = (String)session.getAttribute("offsetcs");
@@ -116,11 +107,11 @@
     if(orderOption.equals("top_k") ){ 
       if(categoryOption.equals("all")){
         rs_product = stmt2.executeQuery(
-          "SELECT p.id,Left(p.name,10),round(cast(sum( o.price * o.quantity) as numeric),2) "+
+          "SELECT p.id,Left(p.name,10),round(cast(sum( o.price ) as numeric),2) "+
           "as amount "+  
           "FROM products p left outer join orders o on "+
           "p.id = o.product_id "+
-          "GROUP BY p.name, p.id "+
+          "GROUP BY p.id "+
           "ORDER BY amount DESC NULLS LAST "+
           "LIMIT 10 offset " + offsetProduct + " ;");
 
@@ -129,18 +120,18 @@
           "as amount "+  
           "FROM products p left outer join orders o on "+
           "p.id = o.product_id "+
-          "GROUP BY p.name, p.id "+
+          "GROUP BY p.id "+
           "ORDER BY amount DESC NULLS LAST "+
-          "LIMIT 10 offset " + offsetProductInc + " ;");
+          "LIMIT 11 offset " + offsetProductInc + " ;");
       }
       else{ //selected category
         rs_product = stmt2.executeQuery(
-          "SELECT p.id,Left(p.name,10),round(cast(sum(o.price * o.quantity) as numeric),2) "+
+          "SELECT p.id,Left(p.name,10),round(cast(sum(o.price) as numeric),2) "+
           "as amount "+
           "FROM products p left outer join orders o on p.id = o.product_id "+ 
           "where p.category_id = "+
           "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
-          "GROUP BY p.name, p.id "+
+          "GROUP BY p.id "+
           "ORDER BY amount DESC NULLs last "+
           "LIMIT 10 offset " + offsetProduct + " ;");
 
@@ -150,7 +141,7 @@
           "FROM products p left outer join orders o on p.id = o.product_id "+ 
           "where p.category_id = "+
           "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
-          "GROUP BY p.name, p.id "+
+          "GROUP BY p.id "+
           "ORDER BY amount DESC NULLs last "+
           "LIMIT 10 offset " + offsetProductInc + " ;");
       }
@@ -159,7 +150,7 @@
     else{ 
       if(categoryOption.equals("all")){
         rs_product = stmt2.executeQuery(
-          "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " + 
+          "select p.id, Left(p.name,10),round(cast(sum(o.price) as numeric),2) as amount " + 
           "from products p left outer join orders o on p.id = o.product_id " +
           "where o.is_cart = false "+
           "group by p.id order by p.name ASC " +
@@ -174,7 +165,7 @@
       }
       else{
         rs_product = stmt2.executeQuery(
-          "select p.id, Left(p.name,10),round(cast(sum(o.quantity * o.price) as numeric),2) as amount " +  
+          "select p.id, Left(p.name,10),round(cast(sum(o.price) as numeric),2) as amount " +  
           "from products p left outer join orders o on p.id = o.product_id " +  
           "where o.is_cart = false and p.category_id = " +
           "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
@@ -194,7 +185,7 @@
     if(rowOption.equals("states")){
       if(orderOption.equals("top_k") ){ 
         rs_stateOrCustomer = stmt.executeQuery(
-          "select distinct state, round(cast(sum(o.quantity*o.price) as numeric),2) "+ 
+          "select distinct state, round(cast(sum(o.price) as numeric),2) "+ 
           "as amount "+
           "from users u left outer join orders o on u.id = o.user_id group by state "+
           "order by amount desc nulls last limit 20 offset "+ offsetCS + " ;");
@@ -208,7 +199,7 @@
 // ============================  State and Alphabetical ============================ //
       else{ //states alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
-        "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+        "select u.state, round(cast(sum(o.price) as numeric),2) as amount "+
         "from users u left outer join orders o on u.id = o.user_id "+
         "group by u.state order by state asc limit 20 offset "+ offsetCS + " ;");
 
@@ -219,7 +210,7 @@
 
       }
       cell_amount = conn.prepareStatement(
-        "select u.state, round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+ 
+        "select u.state, round(cast(sum(o.price) as numeric),2) as amount "+ 
         "from users u left outer join orders o on o.user_id = u.id "+ 
         "where o.product_id = ? and u.state = ? and o.is_cart = false "+ 
         "group by u.state ;");
@@ -228,7 +219,7 @@
     else{ //selected customer
       if(orderOption.equals("top_k") ){ //customer, top-k
         rs_stateOrCustomer = stmt.executeQuery(
-          "select u.id, name,round(cast(sum(o.quantity*o.price) as numeric),2) "+ 
+          "select u.id, name,round(cast(sum(o.price) as numeric),2) "+ 
           "as amount "+
           "from users u left outer join orders o on u.id = o.user_id group by u.id "+
           "order by amount desc nulls last limit 20 offset "+ offsetCS + " ;");
@@ -242,7 +233,7 @@
 // ============================  Customer and Alphabetical ============================ //
       else{ //customer, alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
-        "select u.id, u.name,round(cast(sum(o.quantity * o.price) as numeric),2) as amount "+
+        "select u.id, u.name,round(cast(sum(o.price) as numeric),2) as amount "+
         "from users u left outer join orders o on u.id = o.user_id "+
         "group by u.id order by u.name asc limit 20 offset "+ offsetCS + " ;" );
 
@@ -252,7 +243,7 @@
         "group by u.id order by u.name asc limit 20 offset "+ offsetCSInc + " ;" );
       }
       cell_amount = conn.prepareStatement(
-        "select round(cast((o.price*o.quantity) as numeric),2) as amount "+
+        "select round(cast((o.price) as numeric),2) as amount "+
         "from orders o "+
         "where o.product_id = ? and o.user_id = ? and o.is_cart = false ");
     }
@@ -266,6 +257,7 @@
 		<li><a href="categories.jsp">Categories</a></li>
 		<li><a href="products.jsp">Products</a></li>
 		<li><a href="orders.jsp">Orders</a></li>
+    <li><a href="similar_products.jsp">Similar Products</a></li>
 		<li><a href="login.jsp">Logout</a></li>
 	</ul>
 </div>
