@@ -19,13 +19,26 @@
     conn = DriverManager.getConnection(url, admin, password);
   }
   catch (Exception e) {}
-  
-  if ("POST".equalsIgnoreCase(request.getMethod())) {
-    
-  }
-  
   Statement stmt = conn.createStatement();
-  ResultSet rs = stmt.executeQuery("SELECT * FROM categories");
+  ResultSet rs = stmt.executeQuery(
+    "with temp as(select u.p1, u.p2, (sum(u.amount) /(u2.s1 * u3.s1 )) as result from  "+
+    "  (select o1.product_id as p1, o2.product_id as p2, o1.price*o2.price as amount "+
+    "  from orders o1, orders o2 "+
+    "  where o1.product_id < o2.product_id and o1.user_id = o2.user_id ) u , "+
+    "  (select o.product_id as p, sum(o.price) as s1 "+
+    "  from orders o group by o.product_id) u2,  "+
+    "  (select o.product_id as p, sum(o.price) as s1 "+
+    "  from orders o group by o.product_id) u3 "+
+    "where u.p1 = u2.p and u.p2 = u3.p  "+
+    "group by u.p1,u.p2, u2.s1, u3.s1 "+
+    "order by result DESC limit 100)  "+
+    "select Left(pro_1.name,10) as p1, Left(pro_2.name,10) as p2 "+
+    "from temp, products pro_1, products pro_2 "+
+    "where temp.p1 = pro_1.id and temp.p2 = pro_2.id; "
+
+
+  );
+ 
 %>
 
 <body>
@@ -41,7 +54,13 @@
 </div>
 
 <table class="table table-striped">
+  <th> Similar Products </th>
+ <%while(rs.next()){%>
+    <tr><td><%= rs.getString("p1")%></td>   
+        <td><%= rs.getString("p2")%></td>
+    </tr>
 
+<%}%>
 </table>
 
 </body>

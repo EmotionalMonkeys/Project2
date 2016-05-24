@@ -13,7 +13,6 @@
   ResultSet rs_stateOrCustomer = null;
   ResultSet rs_stateOrCustomer_check = null;
   ResultSet rs_product = null;
-  ResultSet rs_product_check = null;
   PreparedStatement cell_amount = null;
 
   String offsetp = "";
@@ -39,8 +38,6 @@
   Statement stmt = conn.createStatement();
   Statement stmt2 = conn.createStatement();
   Statement stmt3 = conn.createStatement();
-  Statement stmt4 = conn.createStatement();
-  Statement stmt5 = conn.createStatement();
   
   ResultSet rs_categories = stmt3.executeQuery("select name from categories");
 
@@ -113,16 +110,8 @@
           "p.id = o.product_id "+
           "GROUP BY p.id "+
           "ORDER BY amount DESC NULLS LAST "+
-          "LIMIT 10 offset " + offsetProduct + " ;");
+          "LIMIT 11 offset " + offsetProduct + " ;");
 
-        rs_product_check = stmt4.executeQuery(//
-          "SELECT p.id "+
-          "as amount "+  
-          "FROM products p left outer join orders o on "+
-          "p.id = o.product_id "+
-          "GROUP BY p.id "+
-          "ORDER BY amount DESC NULLS LAST "+
-          "LIMIT 11 offset " + offsetProductInc + " ;");
       }
       else{ //selected category
         rs_product = stmt2.executeQuery(
@@ -133,17 +122,7 @@
           "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
           "GROUP BY p.id "+
           "ORDER BY amount DESC NULLs last "+
-          "LIMIT 10 offset " + offsetProduct + " ;");
-
-        rs_product_check = stmt4.executeQuery(
-          "SELECT p.id "+
-          "as amount "+
-          "FROM products p left outer join orders o on p.id = o.product_id "+ 
-          "where p.category_id = "+
-          "(select id from categories where name = "+"\'"+categoryOption+"\'"+") "+
-          "GROUP BY p.id "+
-          "ORDER BY amount DESC NULLs last "+
-          "LIMIT 10 offset " + offsetProductInc + " ;");
+          "LIMIT 11 offset " + offsetProduct + " ;");
       }
     }
 // ============================  Product alphabetical ============================ //
@@ -154,14 +133,9 @@
           "from products p left outer join orders o on p.id = o.product_id " +
           "where o.is_cart = false "+
           "group by p.id order by p.name ASC " +
-          "limit 10 offset " + offsetProduct + " ;" );
+          "limit 11 offset " + offsetProduct + " ;" );
 
-        rs_product_check = stmt4.executeQuery(
-          "select p.id " + 
-          "from products p left outer join orders o on p.id = o.product_id " +
-          "where o.is_cart = false "+
-          "group by p.id order by p.name ASC " +
-          "limit 10 offset " + offsetProductInc + " ;" );
+        
       }
       else{
         rs_product = stmt2.executeQuery(
@@ -170,15 +144,9 @@
           "where o.is_cart = false and p.category_id = " +
           "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
           "group by p.id order by p.name ASC "+ 
-          "limit 10 offset " + offsetProduct + " ;" );
+          "limit 11 offset " + offsetProduct + " ;" );
 
-        rs_product_check = stmt4.executeQuery(
-        "select p.id " +  
-          "from products p left outer join orders o on p.id = o.product_id " +  
-          "where o.is_cart = false and p.category_id = " +
-          "(select c.id from categories c where c.name = "+ "\'" +categoryOption + "\'"+ ") " +
-          "group by p.id order by p.name ASC "+ 
-          "limit 10 offset " + offsetProductInc + " ;" );
+       
       } 
     }   
 // ============================  State and Top_K ============================ //
@@ -188,25 +156,16 @@
           "select distinct state, round(cast(sum(o.price) as numeric),2) "+ 
           "as amount "+
           "from users u left outer join orders o on u.id = o.user_id group by state "+
-          "order by amount desc nulls last limit 20 offset "+ offsetCS + " ;");
+          "order by amount desc nulls last limit 21 offset "+ offsetCS + " ;");
 
-        rs_stateOrCustomer_check = stmt5.executeQuery(
-          "select distinct state "+ 
-          "as amount "+
-          "from users u left outer join orders o on u.id = o.user_id group by state "+
-          "order by amount desc nulls last limit 20 offset "+ offsetCSInc + " ;");
       }
 // ============================  State and Alphabetical ============================ //
       else{ //states alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
         "select u.state, round(cast(sum(o.price) as numeric),2) as amount "+
         "from users u left outer join orders o on u.id = o.user_id "+
-        "group by u.state order by state asc limit 20 offset "+ offsetCS + " ;");
+        "group by u.state order by state asc limit 21 offset "+ offsetCS + " ;");
 
-        rs_stateOrCustomer_check = stmt5.executeQuery(
-        "select u.state "+
-        "from users u left outer join orders o on u.id = o.user_id "+
-        "group by u.state order by state asc limit 20 offset "+ offsetCSInc + " ;");
 
       }
       cell_amount = conn.prepareStatement(
@@ -222,25 +181,16 @@
           "select u.id, name,round(cast(sum(o.price) as numeric),2) "+ 
           "as amount "+
           "from users u left outer join orders o on u.id = o.user_id group by u.id "+
-          "order by amount desc nulls last limit 20 offset "+ offsetCS + " ;");
+          "order by amount desc nulls last limit 21 offset "+ offsetCS + " ;");
 
-        rs_stateOrCustomer_check = stmt5.executeQuery(
-          "select u.id "+ 
-          "as amount "+
-          "from users u left outer join orders o on u.id = o.user_id group by u.id "+
-          "order by amount desc nulls last limit 20 offset "+ offsetCSInc + " ;"); 
       }
 // ============================  Customer and Alphabetical ============================ //
       else{ //customer, alphabetical
         rs_stateOrCustomer = stmt.executeQuery(
         "select u.id, u.name,round(cast(sum(o.price) as numeric),2) as amount "+
         "from users u left outer join orders o on u.id = o.user_id "+
-        "group by u.id order by u.name asc limit 20 offset "+ offsetCS + " ;" );
+        "group by u.id order by u.name asc limit 21 offset "+ offsetCS + " ;" );
 
-        rs_stateOrCustomer_check = stmt5.executeQuery(
-        "select u.id, u.name "+
-        "from users u left outer join orders o on u.id = o.user_id "+
-        "group by u.id order by u.name asc limit 20 offset "+ offsetCSInc + " ;" );
       }
       cell_amount = conn.prepareStatement(
         "select round(cast((o.price) as numeric),2) as amount "+
@@ -309,30 +259,7 @@
   </form>
   <%}%>
 
-  <%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
-  <div> 
-    <%if( rs_product_check.next()){ %>
-      <form action= "orders.jsp" method="POST"> 
-        <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
-        <input type="submit" value = "Next 10 Products"/>
-      </form> 
-    <%}%>
-
-    <%if( rs_stateOrCustomer_check.next()){ %>
-      <form action= "orders.jsp" method="POST"> 
-        <input type="hidden" type="number" name="addCS" value="<%=offsetCSInc%>">
-        <%if (rowOption.equals("customers")){ %>
-          <input type="submit" value = "Next 20 Customers"/>
-        <%}
-          else{ %>
-          <input type="submit" value = "Next 20 States"/>
-        <%}%>
-
-      </form>
-    <%}%> 
-  </div>
-
-  <%}%>
+  
 </div>
 
 
@@ -343,7 +270,8 @@
     <%
       ArrayList productList = new ArrayList(); 
       
-      while(rs_product.next()){
+      for(int i = 0; i < 10 && rs_product.next(); i++){
+      //while(rs_product.next()){
         String productSpending = 
             ((rs_product.getString("amount") == null) ? "0" : 
             rs_product.getString("amount"));
@@ -355,7 +283,8 @@
 
       ResultSet salesAmount = null;
 
-      while (rs_stateOrCustomer.next()) { 
+      for(int i = 0; i < 20 && rs_stateOrCustomer.next(); i++){
+      //while (rs_stateOrCustomer.next()) { 
         if (rowOption.equals("customers")){%>
         <tr>
           <%String amount = 
@@ -412,6 +341,30 @@
 } %>
 </table>
 
+<%if ("POST".equalsIgnoreCase(request.getMethod())) { %>
+  <div> 
+    <%if( rs_product.next()){ %>
+      <form action= "orders.jsp" method="POST"> 
+        <input type="hidden" type="number" name="addProduct" value="<%=offsetProductInc%>">
+        <input type="submit" value = "Next 10 Products"/>
+      </form> 
+    <%}%>
+
+    <%if( rs_stateOrCustomer.next()){ %>
+      <form action= "orders.jsp" method="POST"> 
+        <input type="hidden" type="number" name="addCS" value="<%=offsetCSInc%>">
+        <%if (rowOption.equals("customers")){ %>
+          <input type="submit" value = "Next 20 Customers"/>
+        <%}
+          else{ %>
+          <input type="submit" value = "Next 20 States"/>
+        <%}%>
+
+      </form>
+    <%}%> 
+  </div>
+
+  <%}%>
 
 
 </body>
