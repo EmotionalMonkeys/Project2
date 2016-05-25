@@ -152,11 +152,25 @@
 // ============================  State and Top_K ============================ //
     if(rowOption.equals("states")){
       if(orderOption.equals("top_k") ){ 
-        rs_stateOrCustomer = stmt.executeQuery(
-          "select distinct state, round(cast(sum(o.price) as numeric),2) "+ 
-          "as amount "+
-          "from users u left outer join orders o on u.id = o.user_id group by state "+
-          "order by amount desc nulls last limit 21 offset "+ offsetCS + " ;");
+        if(categoryOption.equals("all")){
+          rs_stateOrCustomer = stmt.executeQuery(
+            "select distinct state, round(cast(sum(o.price) as numeric),2) "+ 
+            "as amount "+
+            "from users u left outer join orders o on u.id = o.user_id group by state "+
+            "order by amount desc nulls last limit 21 offset "+ offsetCS + " ;");
+        }
+        else{
+          rs_stateOrCustomer = stmt.executeQuery(
+            "select distinct state, round(cast(sum(o.price) as numeric),2) "+
+            "as amount "+
+            "from users u left outer join (select * from orders where product_id in "+
+            "(select id from products  where category_id = "+
+            "(select id from categories where "+
+            "name = "+"\'"+categoryOption+"\'"+")))o on u.id = o.user_id "+
+            "group by state order by amount desc nulls last limit 21 offset " +offsetCS+ " ;"
+          );
+
+        }
 
       }
 // ============================  State and Alphabetical ============================ //
@@ -177,11 +191,26 @@
 // ============================  Customer and Top_K ============================ //
     else{ //selected customer
       if(orderOption.equals("top_k") ){ //customer, top-k
-        rs_stateOrCustomer = stmt.executeQuery(
-          "select u.id, name,round(cast(sum(o.price) as numeric),2) "+ 
-          "as amount "+
-          "from users u left outer join orders o on u.id = o.user_id group by u.id "+
-          "order by amount desc nulls last limit 21 offset "+ offsetCS + " ;");
+        if(categoryOption.equals("all")){
+          rs_stateOrCustomer = stmt.executeQuery(
+            "select u.id, name,round(cast(sum(o.price) as numeric),2) "+ 
+            "as amount "+
+            "from users u left outer join orders o on u.id = o.user_id group by u.id "+
+            "order by amount desc nulls last limit 21 offset "+ offsetCS + " ;");
+        }
+        else{
+          rs_stateOrCustomer = stmt.executeQuery(
+            "select u.id, name,round(cast(sum(o.price) as numeric),2) "+
+              "as amount "+
+              "from users u left outer join "+
+              "(select * from orders o where o.product_id in "+
+              "(select id from products where category_id = "+
+              "(select id from categories where "+
+              "name = "+"\'"+categoryOption+"\'"+")))o on u.id = o.user_id "+
+              "group by u.id "+
+              "order by amount desc nulls last limit 21 offset "+ offsetCS + " ;");
+
+        }
 
       }
 // ============================  Customer and Alphabetical ============================ //
